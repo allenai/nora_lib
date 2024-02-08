@@ -6,9 +6,8 @@ cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 rm -rf dist
 
 export TWINE_NON_INTERACTIVE=1
-#export TWINE_REPOSITORY_URL="https://pip.s2.allenai.org/simple/"
-export TWINE_USERNAME='ai2_nora'
-export TWINE_PASSWORD=$AI2_NORA_PYPI_PASSWORD
+export TWINE_USERNAME='__token__'
+export TWINE_PASSWORD=$AI2_NORA_PYPI_TOKEN
 
 pip install --upgrade pip setuptools wheel build twine
 python -m build
