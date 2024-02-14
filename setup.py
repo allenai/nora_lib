@@ -1,13 +1,13 @@
 import setuptools
 
-runtime_requirements = []
+runtime_requirements = ["pydantic>=2,<3"]
 
 # For running tests, linting, etc
 dev_requirements = ["mypy", "pytest", "black"]
 
 setuptools.setup(
     name="nora_lib",
-    version="0.0.1.dev0",
+    version="0.0.1",
     description="For making and coordinating agents and tools",
     url="https://github.com/allenai/nora_lib",
     packages=setuptools.find_packages(exclude=(["tests"])),
