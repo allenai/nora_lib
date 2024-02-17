@@ -38,15 +38,8 @@ class StateManager(Generic[R]):
 
     def write_state(self, state: AsyncTaskState[R]) -> None:
         task_state_path = os.path.join(self._state_dir, f"{state.task_id}.json")
-        if os.path.isfile(task_state_path):
-            with open(task_state_path, "r+") as f:
-                f.write(json.dumps(state.model_dump()))
-
-        else:
-            with open(task_state_path, "w") as f:
-                f.seek(0)
-                f.write(json.dumps(state.model_dump()))
-                f.truncate()
+        with open(task_state_path, "w") as f:
+            json.dump(state.model_dump(), f)
 
     def update_status(self, task_id: str, new_status: str) -> None:
         state = self.read_state(task_id)
