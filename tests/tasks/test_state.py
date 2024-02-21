@@ -49,9 +49,9 @@ class TestState(unittest.TestCase):
                 extra_state={"foo": "bar"},
             )
             manager.write_state(state)
-            manager.update_status(state.task_id, "lost in space")
+            manager.update_status(state.task_id, "fail")
             fetched_state = manager.read_state("asdf")
-            state.task_status = "lost in space"
+            state.task_status = "fail"
 
             self.assertEqual(state, fetched_state)
 
