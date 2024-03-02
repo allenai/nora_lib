@@ -24,7 +24,7 @@ After your PR merges to `main` you will need to publish
 the library to public pypi for it to be useable by client applications.
 
 This requires one environment variable to be set, which can be found in
-the 1Pass NORA Vault under the secret named "AI2 NORA PyPi API Token".
+the 1Pass NORA Vault under the secret named "NORA pypi token".
 
 ```bash
 export AI_NORA_PYPI_TOKEN=<SECRET IN NORA VAULT>
