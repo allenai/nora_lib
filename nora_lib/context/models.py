@@ -18,4 +18,4 @@ class WrappedTaskObject(BaseModel, Generic[R]):
         description="Tool-defined local thread to associate follow up requests"
     )
     task_id: Optional[str] = Field(description="Reference to a long-running task")
-    data: Optional[R] = Field(description="Tool-defined request or response")
+    data: R = Field(description="Tool-defined request or response")

@@ -127,5 +127,5 @@ class InteractionsService:
                 returned_messages.extend(forked_thread.messages)
 
         returned_messages.sort(key=lambda x: datetime.fromisoformat(x.ts))
-        
+
         return returned_messages
