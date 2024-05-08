@@ -3,7 +3,7 @@ import setuptools
 runtime_requirements = ["pydantic>=2,<3", "requests"]
 
 # For running tests, linting, etc
-dev_requirements = ["mypy", "pytest", "black"]
+dev_requirements = ["mypy", "pytest", "black", "types-requests"]
 
 setuptools.setup(
     name="nora_lib",

@@ -44,7 +44,7 @@ class AgentMessageData(BaseModel):
     """capture requests to and responses from tools within Events"""
 
     message_data: dict  # dict of agent/tool request/response format
-    data_sender_actor_id: str = None  # agent sending the data
+    data_sender_actor_id: Optional[str] = None  # agent sending the data
     virtual_thread_id: Optional[str] = None  # tool-provided thread
     tool_call_id: Optional[str] = None  # llm-provided thread
     tool_name: Optional[str] = None  # llm identifier for tool
