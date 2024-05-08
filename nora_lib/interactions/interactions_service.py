@@ -12,7 +12,6 @@ from nora_lib.interactions.models import (
 )
 
 
-# pylint: disable=too-few-public-methods
 class InteractionsService:
     """
     Service which saves interactions to the Interactions API
