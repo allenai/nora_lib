@@ -2,7 +2,7 @@ from datetime import datetime
 import requests
 from typing import List, Optional
 
-from interactions.models import (
+from nora_lib.interactions.models import (
     Event,
     EventType,
     ReturnedMessage,
@@ -100,12 +100,13 @@ class InteractionsService:
     ) -> List[ReturnedMessage]:
         """Build a history of messages for a given message including associated events.
         This includes messages from pre-forked threads."""
-        messages_with_events = []
+        returned_messages: List[ReturnedMessage] = []
 
         messages_for_thread: ThreadRelationsResponse = (
             self.fetch_thread_messages_and_events_for_message(message_id, event_type)
         )
-        messages_with_events.extend(messages_for_thread.messages)
+        if messages_for_thread.messages:
+            returned_messages.extend(messages_for_thread.messages)
 
         # Lookup any thread_fork events (conversation across surfaces)
         thread_fork_events = self.fetch_messages_and_events_for_thread(
@@ -123,11 +124,8 @@ class InteractionsService:
                 )
             )
             if forked_thread.messages:
-                messages_with_events.extend(forked_thread.messages)
+                returned_messages.extend(forked_thread.messages)
 
-        messages_with_events.sort(key=lambda x: datetime.fromisoformat(x.ts))
-        returned_messages = []
-        for msg in messages_with_events:
-            returned_message = ReturnedMessage.model_validate(msg)
-            returned_messages.append(returned_message)
+        returned_messages.sort(key=lambda x: datetime.fromisoformat(x.ts))
+        
         return returned_messages

@@ -1,14 +1,14 @@
 from datetime import datetime
 from typing import List, Optional
 
-from interactions.interactions_service import InteractionsService
-from interactions.models import (
+from nora_lib.interactions.interactions_service import InteractionsService
+from nora_lib.interactions.models import (
     ReturnedMessage,
     ReturnedAgentContextMessage,
     ReturnedAgentContextEvent,
     EventType,
 )
-from context.models import WrappedTaskObject
+from nora_lib.context.models import WrappedTaskObject
 
 
 class ContextService:
