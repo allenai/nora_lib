@@ -33,19 +33,6 @@ class InteractionsService:
         )
         response.raise_for_status()
 
-    def get_message(self, message_id: str) -> ReturnedMessage:
-        """Fetch a message from the Interactions API"""
-        message_url = f"{self.base_url}/interaction/v1/search/message"
-        request_body = {"id": message_id}
-        response = requests.post(
-            message_url,
-            json=request_body,
-            headers=self.headers,
-            timeout=int(self.timeout),
-        )
-        response.raise_for_status()
-        return ReturnedMessage.model_validate(response.json().get("message"))
-
     def fetch_thread_messages_and_events_for_message(
         self, message_id: str, event_type: str
     ) -> ThreadRelationsResponse:
