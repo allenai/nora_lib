@@ -1,5 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
+from uuid import UUID
 
 from nora_lib.interactions.interactions_service import InteractionsService
 from nora_lib.interactions.models import (
@@ -7,6 +8,8 @@ from nora_lib.interactions.models import (
     ReturnedAgentContextMessage,
     ReturnedAgentContextEvent,
     EventType,
+    AgentMessageData,
+    Event,
 )
 from nora_lib.context.models import WrappedTaskObject
 
@@ -67,3 +70,19 @@ class ContextService:
             messages_with_filtered_events.append(updated_message)
 
         return messages_with_filtered_events
+
+    def save_context(self, event_data: WrappedTaskObject):
+        agent_data = AgentMessageData(
+            message_data=event_data.data.model_dump(),
+            data_sender_actor_id=event_data.sender_actor_id,
+            virtual_thread_id=event_data.virtual_thread_id,
+        )
+        event = Event(
+            type=EventType.AGENT_CONTEXT,
+            actor_id=UUID(self.agent_actor_id),
+            timestamp=datetime.now(timezone.utc),
+            data=agent_data.model_dump(),
+            message_id=event_data.message_id,
+        )
+
+        self.interactions_service.save_event(event)
