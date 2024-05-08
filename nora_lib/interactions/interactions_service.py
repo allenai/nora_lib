@@ -1,9 +1,8 @@
 from datetime import datetime
-import json
 import requests
 from typing import List, Optional
 
-from models import (
+from interactions.models import (
     Event,
     EventType,
     ReturnedMessage,

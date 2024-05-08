@@ -44,7 +44,30 @@ class AgentMessageData(BaseModel):
     """capture requests to and responses from tools within Events"""
 
     message_data: dict  # dict of agent/tool request/response format
+    data_sender_actor_id: str = None  # agent sending the data
     virtual_thread_id: Optional[str] = None  # tool-provided thread
+    tool_call_id: Optional[str] = None  # llm-provided thread
+    tool_name: Optional[str] = None  # llm identifier for tool
+
+
+class ReturnedAgentContextEvent(BaseModel):
+    """Event format returned by interaction service for agent context events"""
+
+    actor_id: str  # agent that saved this context
+    timestamp: str
+    data: AgentMessageData
+    type: str
+
+
+class ReturnedAgentContextMessage(BaseModel):
+    """Message format returned by interaction service for search by thread"""
+
+    message_id: str
+    actor_id: str
+    text: str
+    ts: str
+    annotated_text: Optional[str] = None
+    events: Optional[List[ReturnedAgentContextEvent]] = None
 
 
 class ThreadForkEventData(BaseModel):
@@ -62,15 +85,6 @@ class ReturnedMessage(BaseModel):
     ts: str
     annotated_text: Optional[str] = None
     events: Optional[List[dict]] = None
-
-
-class ReturnedAgentContextEvent:
-    """Event format returned by interaction service for agent context events"""
-
-    actor_id: str  # agent that saved this context
-    timestamp: str
-    data: AgentMessageData
-    type: str
 
 
 class ThreadRelationsResponse(BaseModel):
