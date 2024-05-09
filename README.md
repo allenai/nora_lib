@@ -27,7 +27,7 @@ This requires one environment variable to be set, which can be found in
 the 1Pass NORA Vault under the secret named "NORA pypi token".
 
 ```bash
-export AI_NORA_PYPI_TOKEN=<SECRET IN NORA VAULT>
+export AI2_NORA_PYPI_TOKEN=<SECRET IN NORA VAULT>
 cd <project_root>
 git checkout main
 git pull origin main
