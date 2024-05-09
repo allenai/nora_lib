@@ -73,7 +73,7 @@ class ContextService:
 
     def save_context(self, event_data: WrappedTaskObject):
         agent_data = AgentMessageData(
-            message_data=event_data.data.model_dump(),
+            message_data=event_data.model_dump(),
             data_sender_actor_id=event_data.sender_actor_id,
             virtual_thread_id=event_data.virtual_thread_id,
         )
