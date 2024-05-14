@@ -33,6 +33,13 @@ class ContextService:
 
     def _get_interactions_service(self, url, token, timeout) -> InteractionsService:
         return InteractionsService(url, timeout, token)
+    
+    def get_message(self, message_id: str) -> str:
+        message: ReturnedMessage = self.interactions_service.get_message(message_id)
+        if message.annotated_text:
+            return message.annotated_text
+        else:
+            return message.text
 
     def fetch_context(
         self, request: WrappedTaskObject
