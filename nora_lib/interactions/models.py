@@ -39,6 +39,7 @@ class Event(BaseModel):
     def serialize_timestamp(self, timestamp: datetime):
         return timestamp.isoformat()
 
+
 class ReturnedMessage(BaseModel):
     """Message format returned by interaction service"""
 
@@ -84,8 +85,6 @@ class ThreadForkEventData(BaseModel):
     """Event data for a thread fork event"""
 
     previous_message_id: str
-
-
 
 
 class ThreadRelationsResponse(BaseModel):
