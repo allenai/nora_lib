@@ -49,7 +49,6 @@ class InteractionsService:
         res_dict = response.json()["message"]
 
         return ReturnedMessage.model_validate(res_dict)
-  
 
     def fetch_thread_messages_and_events_for_message(
         self, message_id: str, event_type: str
