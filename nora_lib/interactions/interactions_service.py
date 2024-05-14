@@ -5,7 +5,6 @@ from typing import List, Optional
 from nora_lib.interactions.models import (
     Event,
     EventType,
-    Message,
     ReturnedMessage,
     ThreadRelationsResponse,
     ThreadForkEventData,
