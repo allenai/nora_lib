@@ -4,10 +4,10 @@ Model for interactions to be sent to the interactions service.
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional, List
+from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field, field_serializer, ConfigDict
 
 
 class EventType(str, Enum):
@@ -38,6 +38,16 @@ class Event(BaseModel):
     @field_serializer("timestamp")
     def serialize_timestamp(self, timestamp: datetime):
         return timestamp.isoformat()
+
+class ReturnedMessage(BaseModel):
+    """Message format returned by interaction service"""
+
+    message_id: str
+    actor_id: str
+    text: str
+    ts: str
+    annotated_text: Optional[str] = None
+    events: Optional[List[dict]] = None
 
 
 class AgentMessageData(BaseModel):
@@ -76,15 +86,6 @@ class ThreadForkEventData(BaseModel):
     previous_message_id: str
 
 
-class ReturnedMessage(BaseModel):
-    """Message format returned by interaction service for search by thread"""
-
-    message_id: str
-    actor_id: str
-    text: str
-    ts: str
-    annotated_text: Optional[str] = None
-    events: Optional[List[dict]] = None
 
 
 class ThreadRelationsResponse(BaseModel):
