@@ -48,7 +48,7 @@ class ReturnedMessage(BaseModel):
     text: str
     ts: str
     annotated_text: Optional[str] = None
-    events: Optional[List[dict]] = None
+    events: Optional[List[Event]] = None
 
 
 class AgentMessageData(BaseModel):
