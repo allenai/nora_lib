@@ -25,6 +25,16 @@ class Annotation(BaseModel):
     attributes: Optional[Dict[str, str]] = None
 
 
+class AnnotationBatch(BaseModel):
+    actor_id: UUID
+    message_id: str
+    annotations: List[Annotation]
+
+    @field_serializer("actor_id")
+    def serialize_actor_id(self, actor_id: UUID):
+        return str(actor_id)
+
+
 class Message(BaseModel):
     message_id: str
     actor_id: UUID
