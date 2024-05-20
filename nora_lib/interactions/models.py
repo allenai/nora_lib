@@ -58,7 +58,9 @@ class EventType(str, Enum):
     """Event types for the interactions service"""
 
     AGENT_CONTEXT = "agent:message_context"
+    S2_ANNOTATION = "s2_annotation"
     THREAD_FORK = "thread_fork"
+    UI_INTERACTION = "ui_interaction"
 
 
 class Event(BaseModel):
@@ -88,9 +90,9 @@ class ReturnedMessage(BaseModel):
     """Message format returned by interaction service"""
 
     message_id: str
-    actor_id: str
+    actor_id: UUID
     text: str
-    ts: str
+    ts: datetime
     annotated_text: Optional[str] = None
     events: List[Event] = Field(default_factory=list)
     thread_id: Optional[str] = None
@@ -111,8 +113,8 @@ class AgentMessageData(BaseModel):
 class ReturnedAgentContextEvent(BaseModel):
     """Event format returned by interaction service for agent context events"""
 
-    actor_id: str  # agent that saved this context
-    timestamp: str
+    actor_id: UUID  # agent that saved this context
+    timestamp: datetime
     data: AgentMessageData
     type: str
 
@@ -121,7 +123,7 @@ class ReturnedAgentContextMessage(BaseModel):
     """Message format returned by interaction service for search by thread"""
 
     message_id: str
-    actor_id: str
+    actor_id: UUID
     text: str
     ts: str
     annotated_text: Optional[str] = None
