@@ -10,6 +10,40 @@ from uuid import UUID
 from pydantic import BaseModel, Field, field_serializer, ConfigDict
 
 
+class Surface(str, Enum):
+    SLACK = "Slack"
+    WEB = "NoraWebapp"
+
+
+class Annotation(BaseModel):
+    # Need this config to stringify numeric values in attributes.
+    # Otherwise, we'll get 'Input should be a valid string' error.
+    model_config = ConfigDict(coerce_numbers_to_str=True)
+
+    tag: str
+    span: Tuple[int, int]
+    attributes: Optional[Dict[str, str]] = None
+
+
+class Message(BaseModel):
+    message_id: str
+    actor_id: UUID
+    text: str
+    thread_id: Optional[str]
+    channel_id: str
+    surface: Surface
+    ts: datetime
+    annotations: Optional[List[Annotation]] = None
+
+    @field_serializer("actor_id")
+    def serialize_actor_id(self, actor_id: UUID):
+        return str(actor_id)
+
+    @field_serializer("ts")
+    def serialize_ts(self, ts: datetime):
+        return ts.isoformat()
+
+
 class EventType(str, Enum):
     """Event types for the interactions service"""
 
@@ -26,7 +60,7 @@ class Event(BaseModel):
     )
     timestamp: datetime
     text: Optional[str] = None
-    data: Optional[dict] = Field(default_factory=dict)
+    data: dict = Field(default_factory=dict)
     message_id: Optional[str] = None
     thread_id: Optional[str] = None
     channel_id: Optional[str] = None
@@ -48,7 +82,10 @@ class ReturnedMessage(BaseModel):
     text: str
     ts: str
     annotated_text: Optional[str] = None
-    events: Optional[List[dict]] = None
+    events: List[Event] = Field(default_factory=list)
+    thread_id: Optional[str] = None
+    channel_id: Optional[str] = None
+    annotations: Optional[List[Annotation]] = None
 
 
 class AgentMessageData(BaseModel):
@@ -91,10 +128,12 @@ class ThreadRelationsResponse(BaseModel):
     """Thread format returned by interaction service for thread relations in a search response"""
 
     thread_id: str
-    events: Optional[List[Event]] = None  # events associated only with the thread
-    messages: Optional[List[ReturnedMessage]] = (
-        None  # includes events associated with each message
-    )
+    events: List[Event] = Field(
+        default_factory=list
+    )  # events associated only with the thread
+    messages: List[ReturnedMessage] = Field(
+        default_factory=list
+    )  # includes events associated with each message
 
 
 def thread_message_lookup_request(message_id: str, event_type: str) -> dict:
