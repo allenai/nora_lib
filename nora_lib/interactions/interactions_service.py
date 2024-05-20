@@ -130,7 +130,7 @@ class InteractionsService:
                 e,
             )
 
-        messages_with_events.sort(key=lambda x: datetime.fromisoformat(x.ts))
+        messages_with_events.sort(key=lambda x: x.ts)
         return messages_with_events
 
     def fetch_thread_messages_and_events_for_message(
