@@ -4,6 +4,7 @@ import requests
 from typing import List, Optional
 
 from nora_lib.interactions.models import (
+    AnnotationBatch,
     Event,
     EventType,
     Message,
@@ -40,6 +41,17 @@ class InteractionsService:
         response = requests.post(
             event_url,
             json=event.model_dump(),
+            headers=self.headers,
+            timeout=int(self.timeout),
+        )
+        response.raise_for_status()
+
+    def save_annotation(self, annotation: AnnotationBatch) -> None:
+        """Save an annotation to the Interactions API"""
+        annotation_url = f"{self.base_url}/interaction/v1/annotation"
+        response = requests.post(
+            annotation_url,
+            json=annotation.model_dump(),
             headers=self.headers,
             timeout=int(self.timeout),
         )
