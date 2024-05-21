@@ -236,7 +236,7 @@ class InteractionsService:
             message_search_url,
             json=request_body,
             headers=self.headers,
-            timeout=int(self.timeout),
+            timeout=self.timeout,
         )
         response.raise_for_status()
         return response.json()
