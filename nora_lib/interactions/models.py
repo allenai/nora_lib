@@ -94,7 +94,7 @@ class ReturnedMessage(BaseModel):
     text: str
     ts: datetime
     annotated_text: Optional[str] = None
-    events: List[Event] = Field(default_factory=list)
+    events: Optional[List[Event]] = None
     thread_id: Optional[str] = None
     channel_id: Optional[str] = None
     annotations: Optional[List[Annotation]] = None

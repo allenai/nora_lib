@@ -2,6 +2,7 @@ from datetime import datetime
 import logging
 import requests
 from typing import List, Optional
+import json
 
 from nora_lib.interactions.models import (
     AnnotationBatch,
@@ -31,7 +32,7 @@ class InteractionsService:
             message_url,
             json=message.model_dump(),
             headers=self.headers,
-            timeout=int(self.timeout),
+            timeout=self.timeout,
         )
         response.raise_for_status()
 
@@ -42,7 +43,7 @@ class InteractionsService:
             event_url,
             json=event.model_dump(),
             headers=self.headers,
-            timeout=int(self.timeout),
+            timeout=self.timeout,
         )
         response.raise_for_status()
 
@@ -53,7 +54,7 @@ class InteractionsService:
             annotation_url,
             json=annotation.model_dump(),
             headers=self.headers,
-            timeout=int(self.timeout),
+            timeout=self.timeout,
         )
         response.raise_for_status()
 
@@ -68,7 +69,7 @@ class InteractionsService:
             message_url,
             json=request_body,
             headers=self.headers,
-            timeout=int(self.timeout),
+            timeout=self.timeout,
         )
         response.raise_for_status()
         res_dict = response.json()["message"]
@@ -92,7 +93,7 @@ class InteractionsService:
             message_url,
             json=request_body,
             headers=self.headers,
-            timeout=int(self.timeout),
+            timeout=self.timeout,
         )
         response.raise_for_status()
         return response.json()
@@ -114,7 +115,8 @@ class InteractionsService:
         # Process any thread_fork events
         try:
             for msg in messages_for_thread.messages:
-                for event in msg.events:
+                events = msg.events if msg.events else []
+                for event in events:
                     if event.type == EventType.THREAD_FORK.value:
                         event_data = ThreadForkEventData.model_validate(event.data)
                         forked_thread: ThreadRelationsResponse = (
@@ -143,7 +145,7 @@ class InteractionsService:
             message_url,
             json=request_body,
             headers=self.headers,
-            timeout=int(self.timeout),
+            timeout=self.timeout,
         )
         response.raise_for_status()
         json_response = response.json()
@@ -176,10 +178,45 @@ class InteractionsService:
             thread_search_url,
             json=request_body,
             headers=self.headers,
-            timeout=int(self.timeout),
+            timeout=self.timeout,
         )
         response.raise_for_status()
         return response.json()
+
+    def fetch_messages_and_events_for_forked_thread(
+        self, message_id: str, event_type: str
+    ) -> List[ReturnedMessage]:
+        """Build a history of messages for a given message including associated events.
+        This includes messages from pre-forked threads."""
+        returned_messages: List[ReturnedMessage] = []
+
+        messages_for_thread: ThreadRelationsResponse = (
+            self.fetch_thread_messages_and_events_for_message(message_id, [event_type])
+        )
+        if messages_for_thread.messages:
+            returned_messages.extend(messages_for_thread.messages)
+
+        # Lookup any thread_fork events (conversation across surfaces)
+        thread_fork_events = self.fetch_messages_and_events_for_thread(
+            messages_for_thread.thread_id, EventType.THREAD_FORK.value
+        )
+        for forked_thread_event in thread_fork_events.get("thread", {}).get(
+            "events", []
+        ):
+            event_data = ThreadForkEventData.model_validate(
+                forked_thread_event.get("data", {})
+            )
+            forked_thread: ThreadRelationsResponse = (
+                self.fetch_thread_messages_and_events_for_message(
+                    event_data.previous_message_id, [event_type]
+                )
+            )
+            if forked_thread.messages:
+                returned_messages.extend(forked_thread.messages)
+
+        returned_messages.sort(key=lambda x: x.ts)
+
+        return returned_messages
 
     def fetch_events_for_message(
         self,
@@ -237,3 +274,32 @@ class InteractionsService:
                 }
             },
         }
+
+    @staticmethod
+    def prod() -> "InteractionsService":
+        return InteractionsService(
+            base_url="https://s2ub.prod.s2.allenai.org/service/noraretrieval",
+            timeout=30,
+            token=InteractionsService._fetch_bearer_token(
+                "nora/prod/interaction-bearer-token"
+            ),
+        )
+
+    @staticmethod
+    def dev() -> "InteractionsService":
+        return InteractionsService(
+            base_url="https://s2ub.dev.s2.allenai.org/service/noraretrieval",
+            timeout=30,
+            token=InteractionsService._fetch_bearer_token(
+                "nora/dev/interaction-bearer-token"
+            ),
+        )
+
+    @staticmethod
+    def _fetch_bearer_token(secret_id: str) -> str:
+        import boto3
+
+        secrets_manager = boto3.client("secretsmanager", region_name="us-west-2")
+        return json.loads(
+            secrets_manager.get_secret_value(SecretId=secret_id)["SecretString"]
+        )["token"]
