@@ -1,6 +1,7 @@
 from datetime import datetime
 import requests
 from typing import List, Optional
+import json
 
 from nora_lib.interactions.models import (
     Event,
@@ -132,3 +133,32 @@ class InteractionsService:
         returned_messages.sort(key=lambda x: datetime.fromisoformat(x.ts))
 
         return returned_messages
+
+    @staticmethod
+    def prod() -> "InteractionsService":
+        return InteractionsService(
+            base_url="https://s2ub.prod.s2.allenai.org/service/noraretrieval",
+            timeout=30,
+            token=InteractionsService._fetch_bearer_token(
+                "nora/prod/interaction-bearer-token"
+            ),
+        )
+
+    @staticmethod
+    def dev() -> "InteractionsService":
+        return InteractionsService(
+            base_url="https://s2ub.dev.s2.allenai.org/service/noraretrieval",
+            timeout=30,
+            token=InteractionsService._fetch_bearer_token(
+                "nora/dev/interaction-bearer-token"
+            ),
+        )
+
+    @staticmethod
+    def _fetch_bearer_token(secret_id: str) -> str:
+        import boto3
+
+        secrets_manager = boto3.client("secretsmanager", region_name="us-west-2")
+        return json.loads(
+            secrets_manager.get_secret_value(SecretId=secret_id)["SecretString"]
+        )["token"]
