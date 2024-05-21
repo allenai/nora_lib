@@ -115,8 +115,7 @@ class InteractionsService:
         # Process any thread_fork events
         try:
             for msg in messages_for_thread.messages:
-                events = msg.events if msg.events else []
-                for event in events:
+                for event in msg.events:
                     if event.type == EventType.THREAD_FORK.value:
                         event_data = ThreadForkEventData.model_validate(event.data)
                         forked_thread: ThreadRelationsResponse = (
