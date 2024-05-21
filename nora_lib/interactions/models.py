@@ -43,7 +43,7 @@ class Message(BaseModel):
     channel_id: str
     surface: Surface
     ts: datetime
-    annotations: Optional[List[Annotation]] = None
+    annotations: List[Annotation] = Field(default_factory=list)
 
     @field_serializer("actor_id")
     def serialize_actor_id(self, actor_id: UUID):
@@ -94,10 +94,10 @@ class ReturnedMessage(BaseModel):
     text: str
     ts: datetime
     annotated_text: Optional[str] = None
-    events: Optional[List[Event]] = None
+    events: List[Event] = Field(default_factory=list)
     thread_id: Optional[str] = None
     channel_id: Optional[str] = None
-    annotations: Optional[List[Annotation]] = None
+    annotations: List[Annotation] = Field(default_factory=list)
 
 
 class AgentMessageData(BaseModel):
@@ -127,7 +127,7 @@ class ReturnedAgentContextMessage(BaseModel):
     text: str
     ts: str
     annotated_text: Optional[str] = None
-    events: Optional[List[ReturnedAgentContextEvent]] = None
+    events: List[ReturnedAgentContextEvent] = Field(default_factory=list)
 
 
 class ThreadForkEventData(BaseModel):
