@@ -126,7 +126,7 @@ class RemoteStateManager(IStateManager[R]):
         event_type = RemoteStateManager._TASK_STATE_EVENT_TYPE.format(self.agent_name)
         response = (
             self.interactions_service.fetch_thread_messages_and_events_for_message(
-                self.message_id, event_type
+                self.message_id, [event_type]
             )
         )
         latest_state: Optional[AsyncTaskState[R]] = None
@@ -142,7 +142,9 @@ class RemoteStateManager(IStateManager[R]):
                     )
                 if state.task_id != task_id:
                     continue
-                if latest_state is None or event.timestamp > latest_timestamp:
+                if latest_state is None or (
+                    latest_timestamp and event.timestamp > latest_timestamp
+                ):
                     latest_state = state
                     latest_timestamp = event.timestamp
 
