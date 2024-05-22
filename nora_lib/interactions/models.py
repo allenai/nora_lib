@@ -2,6 +2,7 @@
 Model for interactions to be sent to the interactions service.
 """
 
+import json
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
@@ -54,15 +55,6 @@ class Message(BaseModel):
         return ts.isoformat()
 
 
-class EventType(str, Enum):
-    """Event types for the interactions service"""
-
-    AGENT_CONTEXT = "agent:message_context"
-    S2_ANNOTATION = "s2_annotation"
-    THREAD_FORK = "thread_fork"
-    UI_INTERACTION = "ui_interaction"
-
-
 class Event(BaseModel):
     """event object to be sent to the interactions service; requires association with a message, thread or channel id"""
 
@@ -89,15 +81,25 @@ class Event(BaseModel):
 class ReturnedMessage(BaseModel):
     """Message format returned by interaction service"""
 
-    message_id: str
     actor_id: UUID
     text: str
     ts: datetime
+    message_id: Optional[str] = None
     annotated_text: Optional[str] = None
     events: List[Event] = Field(default_factory=list)
     thread_id: Optional[str] = None
     channel_id: Optional[str] = None
     annotations: List[Annotation] = Field(default_factory=list)
+
+    @classmethod
+    def from_event(cls, event: Event) -> "ReturnedMessage":
+        """Convert an event to a message"""
+        return ReturnedMessage(
+            actor_id=event.actor_id,
+            text=json.dumps(event.data),
+            ts=event.timestamp,
+            message_id=event.message_id,
+        )
 
 
 class AgentMessageData(BaseModel):
@@ -128,12 +130,6 @@ class ReturnedAgentContextMessage(BaseModel):
     ts: str
     annotated_text: Optional[str] = None
     events: List[ReturnedAgentContextEvent] = Field(default_factory=list)
-
-
-class ThreadForkEventData(BaseModel):
-    """Event data for a thread fork event"""
-
-    previous_message_id: str
 
 
 class ThreadRelationsResponse(BaseModel):
