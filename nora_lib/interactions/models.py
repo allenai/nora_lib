@@ -55,15 +55,6 @@ class Message(BaseModel):
         return ts.isoformat()
 
 
-class EventType(str, Enum):
-    """Event types for the interactions service"""
-
-    AGENT_CONTEXT = "agent:message_context"
-    S2_ANNOTATION = "s2_annotation"
-    THREAD_FORK = "thread_fork"
-    UI_INTERACTION = "ui_interaction"
-
-
 class Event(BaseModel):
     """event object to be sent to the interactions service; requires association with a message, thread or channel id"""
 
@@ -139,12 +130,6 @@ class ReturnedAgentContextMessage(BaseModel):
     ts: str
     annotated_text: Optional[str] = None
     events: List[ReturnedAgentContextEvent] = Field(default_factory=list)
-
-
-class ThreadForkEventData(BaseModel):
-    """Event data for a thread fork event"""
-
-    previous_message_id: str
 
 
 class ThreadRelationsResponse(BaseModel):
