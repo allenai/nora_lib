@@ -98,42 +98,6 @@ class InteractionsService:
         response.raise_for_status()
         return response.json()
 
-    def fetch_messages_and_agent_context_events_for_thread(
-        self, message_id: str, event_type: str
-    ) -> List[ReturnedMessage]:
-        """Build a history of messages for a given message including associated events.
-        This includes messages from pre-forked threads."""
-        messages_with_events: List[ReturnedMessage] = []
-
-        messages_for_thread: ThreadRelationsResponse = (
-            self.fetch_thread_messages_and_events_for_message(
-                message_id, [event_type, EventType.THREAD_FORK.value]
-            )
-        )
-        messages_with_events.extend(messages_for_thread.messages)
-
-        # Process any thread_fork events
-        try:
-            for msg in messages_for_thread.messages:
-                for event in msg.events:
-                    if event.type == EventType.THREAD_FORK.value:
-                        event_data = ThreadForkEventData.model_validate(event.data)
-                        forked_thread: ThreadRelationsResponse = (
-                            self.fetch_thread_messages_and_events_for_message(
-                                event_data.previous_message_id, [event_type]
-                            )
-                        )
-                        messages_with_events.extend(forked_thread.messages)
-        except Exception as e:  # pylint: disable=broad-except
-            logging.exception(
-                "Failed to fetch forked thread messages for message %s: %s",
-                message_id,
-                e,
-            )
-
-        messages_with_events.sort(key=lambda x: x.ts)
-        return messages_with_events
-
     def fetch_thread_messages_and_events_for_message(
         self, message_id: str, event_types: list[str]
     ) -> ThreadRelationsResponse:
