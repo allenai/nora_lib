@@ -2,6 +2,7 @@
 Model for interactions to be sent to the interactions service.
 """
 
+import json
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
@@ -89,15 +90,25 @@ class Event(BaseModel):
 class ReturnedMessage(BaseModel):
     """Message format returned by interaction service"""
 
-    message_id: str
     actor_id: UUID
     text: str
     ts: datetime
+    message_id: Optional[str] = None
     annotated_text: Optional[str] = None
     events: List[Event] = Field(default_factory=list)
     thread_id: Optional[str] = None
     channel_id: Optional[str] = None
     annotations: List[Annotation] = Field(default_factory=list)
+
+    @classmethod
+    def from_event(cls, event: Event) -> "ReturnedMessage":
+        """Convert an event to a message"""
+        return ReturnedMessage(
+            actor_id=event.actor_id,
+            text=json.dumps(event.data),
+            ts=event.timestamp,
+            message_id=event.message_id,
+        )
 
 
 class AgentMessageData(BaseModel):
