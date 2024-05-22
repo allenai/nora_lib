@@ -1,17 +1,7 @@
-from datetime import datetime, timezone
-from typing import List, Optional
-from uuid import UUID
+from typing import Optional
 
 from nora_lib.interactions.interactions_service import InteractionsService
-from nora_lib.interactions.models import (
-    ReturnedMessage,
-    ReturnedAgentContextMessage,
-    ReturnedAgentContextEvent,
-    EventType,
-    AgentMessageData,
-    Event,
-)
-from nora_lib.context.models import WrappedTaskObject
+from nora_lib.interactions.models import ReturnedMessage
 
 
 class ContextService:
