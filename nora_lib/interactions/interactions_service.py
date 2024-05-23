@@ -79,11 +79,18 @@ class InteractionsService:
 
         return res
 
-    def fetch_all_threads_by_channel(self, channel_id: str, min_timestamp: str) -> dict:
+    def fetch_all_threads_by_channel(
+        self,
+        channel_id: str,
+        min_timestamp: str,
+        thread_event_types: Optional[list[str]] = None,
+    ) -> dict:
         """Fetch a message from the Interactions API"""
         message_url = f"{self.base_url}/interaction/v1/search/channel"
         request_body = self._channel_lookup_request(
-            channel_id=channel_id, min_timestamp=min_timestamp
+            channel_id=channel_id,
+            min_timestamp=min_timestamp,
+            thread_event_types=thread_event_types,
         )
         response = requests.post(
             message_url,
@@ -166,7 +173,9 @@ class InteractionsService:
         return response.json()
 
     @staticmethod
-    def _channel_lookup_request(channel_id: str, min_timestamp: str) -> dict:
+    def _channel_lookup_request(
+        channel_id: str, min_timestamp: str, thread_event_types: Optional[list[str]]
+    ) -> dict:
         """Interaction service API request to get threads and messages for a channel"""
         return {
             "id": channel_id,
@@ -176,7 +185,8 @@ class InteractionsService:
                         "messages": {
                             "filter": {"min_timestamp": min_timestamp},
                             "apply_annotations_from_actors": ["*"],
-                        }
+                        },
+                        "events": {"filter": {"type": thread_event_types or []}},
                     }
                 }
             },
