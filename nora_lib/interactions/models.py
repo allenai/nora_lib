@@ -87,6 +87,7 @@ class ReturnedMessage(BaseModel):
     message_id: Optional[str] = None
     annotated_text: Optional[str] = None
     events: List[Event] = Field(default_factory=list)
+    preceding_messages: List["ReturnedMessage"] = Field(default_factory=list)
     thread_id: Optional[str] = None
     channel_id: Optional[str] = None
     annotations: List[Annotation] = Field(default_factory=list)
@@ -142,6 +143,19 @@ class ThreadRelationsResponse(BaseModel):
     messages: List[ReturnedMessage] = Field(
         default_factory=list
     )  # includes events associated with each message
+
+
+class VirtualThread:
+    """Virtuals threads are an event type used to sub-divide a thread into sb-conversations"""
+
+    # The type of event that represetns a virtual thread
+    EVENT_TYPE = "virtual_thread"
+
+    # Data field in the event that contains the ID of the virtual thread id
+    ID_FIELD = "virtual_thread_id"
+
+    # Data field in the event that contains the type of other events in the virtual thread
+    EVENT_TYPE_FIELD = "event_type"
 
 
 def thread_message_lookup_request(message_id: str, event_type: str) -> dict:
