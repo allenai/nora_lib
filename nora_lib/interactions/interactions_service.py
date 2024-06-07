@@ -1,5 +1,5 @@
 import requests
-from typing import Optional
+from typing import Optional, List
 import json
 
 from nora_lib.interactions.models import (
@@ -8,6 +8,7 @@ from nora_lib.interactions.models import (
     Message,
     ReturnedMessage,
     ThreadRelationsResponse,
+    VirtualThread,
 )
 
 
@@ -21,8 +22,13 @@ class InteractionsService:
         self.timeout = timeout
         self.headers = {"Authorization": f"Bearer {token}"} if token else None
 
-    def save_message(self, message: Message) -> None:
-        """Save a message to the Interactions API"""
+    def save_message(
+        self, message: Message, virtual_thread_id: Optional[str] = None
+    ) -> None:
+        """
+        Save a message to the Interaction Store
+        :param virtual_thread_id: Optional ID of a virtual thread to associate with the message
+        """
         message_url = f"{self.base_url}/interaction/v1/message"
         response = requests.post(
             message_url,
@@ -31,9 +37,25 @@ class InteractionsService:
             timeout=self.timeout,
         )
         response.raise_for_status()
+        if virtual_thread_id:
+            # Use an event to tag the message with the virtual thread ID
+            event = Event(
+                type=VirtualThread.EVENT_TYPE,
+                actor_id=message.actor_id,
+                message_id=message.message_id,
+                data={
+                    VirtualThread.ID_FIELD: virtual_thread_id,
+                    VirtualThread.EVENT_TYPE_FIELD: VirtualThread.EVENT_TYPE,
+                },
+                timestamp=message.ts,
+            )
+            self.save_event(event)
 
-    def save_event(self, event: Event) -> None:
-        """Save an event to the Interactions API"""
+    def save_event(self, event: Event, virtual_thread_id: Optional[str] = None) -> None:
+        """
+        Save an event to the Interaction Store
+        :param virtual_thread_id: Optional ID of a virtual thread to associate with the event
+        """
         event_url = f"{self.base_url}/interaction/v1/event"
         response = requests.post(
             event_url,
@@ -42,6 +64,77 @@ class InteractionsService:
             timeout=self.timeout,
         )
         response.raise_for_status()
+        if virtual_thread_id:
+            # Use an event to tag the event with the virtual thread ID
+            # Attach it to the same message as this event, along with the event type
+            event = Event(
+                type=VirtualThread.EVENT_TYPE,
+                actor_id=event.actor_id,
+                message_id=event.message_id,
+                data={
+                    VirtualThread.ID_FIELD: virtual_thread_id,
+                    VirtualThread.EVENT_TYPE_FIELD: event.type,
+                },
+                timestamp=event.timestamp,
+            )
+            self.save_event(event)
+
+    def get_virtual_thread_content(
+        self, message_id: str, virtual_thread_id: str
+    ) -> List[ReturnedMessage]:
+        """Fetch all messages and events in a virtual thread
+        Returns all messages and events in the same thread as the given message,
+        but filtered to only include those associated with the given virtual thread.
+        :param message_id: The ID of a message in the virtual thread
+        :param virtual_thread_id: The ID of the virtual thread
+        """
+        message_search_url = f"{self.base_url}/interaction/v1/search/message"
+        # Fetch all events and filter on the client side
+        # Need an IStore schema change to do this server-side
+        request_body = {
+            "id": message_id,
+            "relations": {
+                "preceding_messages": {
+                    "max": 100,
+                    "relations": {"events": {}},
+                },
+                "events": {},
+            },
+        }
+
+        response = requests.post(
+            message_search_url,
+            json=request_body,
+            headers=self.headers,
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
+        result = ReturnedMessage.model_validate(response.json()["message"])
+        all_messages = result.preceding_messages + [result]
+        virtual_thread_content = []
+        for msg in all_messages:
+            event_types_in_virtual_thread = set(
+                event.data[VirtualThread.EVENT_TYPE_FIELD]
+                for event in msg.events
+                if event.type == VirtualThread.EVENT_TYPE
+                and event.data.get(VirtualThread.ID_FIELD) == virtual_thread_id
+            )
+            if not event_types_in_virtual_thread:
+                continue
+            virtual_thread_content.append(msg)
+            msg.events = [
+                event
+                for event in msg.events
+                if event.type != VirtualThread.EVENT_TYPE
+                and event.type in event_types_in_virtual_thread
+            ]
+            if VirtualThread.EVENT_TYPE not in event_types_in_virtual_thread:
+                # An event has been tagged with the virtual thread ID
+                # but the message itself is not in the virtual thread
+                # Somewhat pathological case, probably shouldn't happen
+                # Set the message text to empty string
+                msg.text = ""
+        return virtual_thread_content
 
     def save_annotation(self, annotation: AnnotationBatch) -> None:
         """Save an annotation to the Interactions API"""
@@ -102,7 +195,7 @@ class InteractionsService:
         return response.json()
 
     def fetch_thread_messages_and_events_for_message(
-        self, message_id: str, event_types: list[str]
+        self, message_id: str, event_types: List[str]
     ) -> ThreadRelationsResponse:
         """Fetch messages sorted by timestamp and events for agent context"""
         message_url = f"{self.base_url}/interaction/v1/search/message"
