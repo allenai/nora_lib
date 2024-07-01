@@ -35,7 +35,7 @@ def _event(msg: Message, type: str, data: dict):
 @unittest.skip("Requires a local instance of the interactions service")
 class TestVirtualThreads(unittest.TestCase):
     def setUp(self):
-        self.svc = InteractionsService("http://localhost:8080", 30, None)
+        self.svc = InteractionsService("http://localhost:8090", 30, None)
 
     def test_placeholder(self):
         virtual_thread_1 = "virtual_thread_1"
