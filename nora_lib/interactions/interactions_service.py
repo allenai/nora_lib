@@ -79,6 +79,10 @@ class InteractionsService:
                 timestamp=event.timestamp,
             )
             self.save_event(event)
+        response_message = json.loads(response.text)
+        event_id = response_message["event_id"]
+        return event_id
+
 
     def get_virtual_thread_content(
         self, message_id: str, virtual_thread_id: str
