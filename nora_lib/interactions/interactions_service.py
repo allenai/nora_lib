@@ -52,7 +52,7 @@ class InteractionsService:
             )
             self.save_event(event)
 
-    def save_event(self, event: Event, virtual_thread_id: Optional[str] = None) -> None:
+    def save_event(self, event: Event, virtual_thread_id: Optional[str] = None) -> int:
         """
         Save an event to the Interaction Store
         :param virtual_thread_id: Optional ID of a virtual thread to associate with the event
