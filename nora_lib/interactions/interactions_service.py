@@ -7,6 +7,7 @@ from nora_lib.interactions.models import (
     Event,
     Message,
     ReturnedMessage,
+    ReturnedEvent,
     ThreadRelationsResponse,
     VirtualThread,
 )
@@ -51,7 +52,7 @@ class InteractionsService:
             )
             self.save_event(event)
 
-    def save_event(self, event: Event, virtual_thread_id: Optional[str] = None) -> None:
+    def save_event(self, event: Event, virtual_thread_id: Optional[str] = None) -> str:
         """
         Save an event to the Interaction Store
         :param virtual_thread_id: Optional ID of a virtual thread to associate with the event
@@ -78,6 +79,9 @@ class InteractionsService:
                 timestamp=event.timestamp,
             )
             self.save_event(event)
+        response_message = json.loads(response.text)
+        event_id = response_message["event_id"]
+        return event_id
 
     def get_virtual_thread_content(
         self, message_id: str, virtual_thread_id: str
@@ -170,6 +174,23 @@ class InteractionsService:
         if not res.channel_id:
             res.channel_id = res_dict.get("channel", {}).get("channel_id")
 
+        return res
+
+    def get_event(self, event_id: str) -> ReturnedEvent:
+        """Fetch an event from the Interactions API"""
+        event_url = f"{self.base_url}/interaction/v1/search/event"
+        request_body = {
+            "id": event_id,
+        }
+        response = requests.post(
+            event_url,
+            json=request_body,
+            headers=self.headers,
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
+        res_dict = response.json()["events"][0]
+        res = ReturnedEvent.model_validate(res_dict)
         return res
 
     def fetch_all_threads_by_channel(
