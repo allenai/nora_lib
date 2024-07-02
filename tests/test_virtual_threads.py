@@ -32,7 +32,7 @@ def _event(msg: Message, type: str, data: dict):
     )
 
 
-@unittest.skip("Requires a local instance of the interactions service")
+# @unittest.skip("Requires a local instance of the interactions service")
 class TestVirtualThreads(unittest.TestCase):
     def setUp(self):
         self.svc = InteractionsService("http://localhost:9080", 30, None)
@@ -50,7 +50,7 @@ class TestVirtualThreads(unittest.TestCase):
         e_id = self.svc.save_event(event1)
         self.svc.save_event(event2, virtual_thread_1)
         self.svc.save_event(event3, virtual_thread_2)
-        returned_event = self.svc.get_event(str(e_id))
+        returned_event = self.svc.get_event(e_id)
 
         content = self.svc.get_virtual_thread_content(msg2.message_id, virtual_thread_1)
         self.assertIsNotNone(returned_event)
