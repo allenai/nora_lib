@@ -58,4 +58,3 @@ class TestVirtualThreads(unittest.TestCase):
         self.assertEqual([m.message_id for m in content], [msg2.message_id])
         # Should only contain the events tagged with virtual_thread_1
         self.assertEqual([e.type for e in content[0].events], [event2.type])
-

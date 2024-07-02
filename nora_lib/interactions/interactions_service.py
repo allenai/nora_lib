@@ -83,7 +83,6 @@ class InteractionsService:
         event_id = response_message["event_id"]
         return event_id
 
-
     def get_virtual_thread_content(
         self, message_id: str, virtual_thread_id: str
     ) -> List[ReturnedMessage]:
