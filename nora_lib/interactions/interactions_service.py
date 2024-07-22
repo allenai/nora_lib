@@ -286,6 +286,43 @@ class InteractionsService:
         response.raise_for_status()
         return response.json()
 
+    def fetch_all_by_channel(
+        self,
+        channel_id: str,
+        min_timestamp: Optional[str] = None,
+        event_types: Optional[List[str]] = None,
+    ) -> dict:
+        """
+        Fetch all threads, messages, and events including nested ones for a given channel
+        """
+        channel_search_url = f"{self.base_url}/interaction/v1/search/channel"
+        event_query = {"filter": {"type": event_types or []}}
+        message_query = {
+            "relations": {"events": event_query, "annotations:": {}},
+            "filter": {"min_timestamp": min_timestamp} if min_timestamp else None,
+            "apply_annotations_from_actors": ["*"],
+        }
+        request_body = {
+            "id": channel_id,
+            "relations": {
+                "threads": {
+                    "relations": {
+                        "messages": message_query,
+                        "events": event_query,
+                    }
+                },
+                "messages": message_query,
+            },
+        }
+        response = requests.post(
+            channel_search_url,
+            json=request_body,
+            headers=self.headers,
+            timeout=int(self.timeout),
+        )
+        response.raise_for_status()
+        return response.json()
+
     @staticmethod
     def _channel_lookup_request(
         channel_id: str, min_timestamp: str, thread_event_types: Optional[list[str]]
