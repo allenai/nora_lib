@@ -78,6 +78,12 @@ class Event(BaseModel):
         return timestamp.isoformat()
 
 
+class Thread(BaseModel):
+    thread_id: str
+    channel_id: str
+    surface: Surface
+
+
 class ReturnedEvent(BaseModel):
     """Event format returned by the interaction service"""
 
