@@ -8,6 +8,7 @@ from nora_lib.interactions.models import (
     Message,
     ReturnedMessage,
     ReturnedEvent,
+    Thread,
     ThreadRelationsResponse,
     VirtualThread,
 )
@@ -82,6 +83,17 @@ class InteractionsService:
         response_message = json.loads(response.text)
         event_id = response_message["event_id"]
         return event_id
+
+    def save_thread(self, thread: Thread) -> None:
+        """Save a thread to the Interactions API"""
+        thread_url = f"{self.base_url}/interaction/v1/thread"
+        response = requests.post(
+            thread_url,
+            json=thread.model_dump(),
+            headers=self.headers,
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
 
     def get_virtual_thread_content(
         self, message_id: str, virtual_thread_id: str
