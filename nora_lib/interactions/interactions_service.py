@@ -254,14 +254,14 @@ class InteractionsService:
     ) -> dict:
         """Fetch messages and events for the given thread from the Interactions API"""
         thread_search_url = f"{self.base_url}/interaction/v1/search/thread"
+        message_query = {
+            "filter": {"min_timestamp": min_timestamp} if min_timestamp else None,
+            "apply_annotations_from_actors": ["*"],
+        }
         request_body = {
             "id": thread_id,
             "relations": {
-                "messages": (
-                    {"filter": {"min_timestamp": min_timestamp}}
-                    if min_timestamp
-                    else {}
-                ),
+                "messages": message_query,
                 "events": {"filter": {"type": event_type}} if event_type else {},
             },
         }
