@@ -2,6 +2,7 @@ from typing import Optional
 
 from nora_lib.interactions.interactions_service import InteractionsService
 from nora_lib.interactions.models import ReturnedMessage
+from nora_lib.interactions.config import Config
 
 
 class ContextService:
@@ -12,17 +13,16 @@ class ContextService:
     def __init__(
         self,
         agent_actor_id: str,  # uuid representing this agent in interaction store
-        interactions_base_url: str,
-        interactions_bearer_token: Optional[str],
-        timeout: int = 30,
+        config: Optional[Config] = None,
     ):
-        self.interactions_service = self._get_interactions_service(
-            interactions_base_url, interactions_bearer_token, timeout
-        )
+        # If no config is provided, load the configuration based on the environment
+        self.config = config if config else Config.from_config()
+
+        self.interactions_service = self._get_interactions_service()
         self.agent_actor_id = agent_actor_id
 
-    def _get_interactions_service(self, url, token, timeout) -> InteractionsService:
-        return InteractionsService(url, timeout, token)
+    def _get_interactions_service(self) -> InteractionsService:
+        return InteractionsService(self.config)
 
     def get_message(self, message_id: str) -> str:
         message: ReturnedMessage = self.interactions_service.get_message(message_id)

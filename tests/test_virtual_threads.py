@@ -2,6 +2,7 @@ import unittest
 
 from nora_lib.interactions.interactions_service import InteractionsService
 from nora_lib.interactions.models import *
+from nora_lib.interactions.config import Config
 from uuid import uuid4
 
 ACTOR = uuid4()
@@ -35,7 +36,8 @@ def _event(msg: Message, type: str, data: dict):
 @unittest.skip("Requires a local instance of the interactions service")
 class TestVirtualThreads(unittest.TestCase):
     def setUp(self):
-        self.svc = InteractionsService("http://localhost:9080", 30, None)
+        config = Config.from_config("local")
+        self.svc = InteractionsService(config)
 
     def test_placeholder(self):
         virtual_thread_1 = "virtual_thread_1"
