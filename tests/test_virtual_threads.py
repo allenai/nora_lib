@@ -1,9 +1,7 @@
-import os
 import unittest
 
 from nora_lib.interactions.interactions_service import InteractionsService
 from nora_lib.interactions.models import *
-from nora_lib.interactions.config import Config
 from uuid import uuid4
 
 ACTOR = uuid4()
@@ -35,9 +33,10 @@ def _event(msg: Message, type: str, data: dict):
 
 
 @unittest.skip("Requires a local instance of the interactions service")
+# When running this test you will need to set INTERACTION_STORE_URL in the env
 class TestVirtualThreads(unittest.TestCase):
     def setUp(self):
-        config = Config.from_env()
+        config = InteractionsService.from_env()
         self.svc = InteractionsService(config)
 
     def test_placeholder(self):

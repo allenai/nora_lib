@@ -1,6 +1,8 @@
 import requests
 from typing import Optional, List
 import json
+import os
+import boto3
 
 from nora_lib.interactions.models import (
     AnnotationBatch,
@@ -13,19 +15,19 @@ from nora_lib.interactions.models import (
     VirtualThread,
 )
 
-from nora_lib.interactions.config import Config
-
 
 class InteractionsService:
     """
     Service which saves interactions to the Interactions API
     """
 
-    def __init__(self, config: Config):
-        self.base_url = config.base_url
-        self.timeout = config.timeout
+    def __init__(self, configuration):
+        self.base_url = configuration["base_url"]
+        self.timeout = configuration["timeout"]
         self.headers = (
-            {"Authorization": f"Bearer {config.token}"} if config.token else None
+            {"Authorization": f"Bearer {configuration['token']}"}
+            if configuration["token"]
+            else None
         )
 
     def save_message(
@@ -375,3 +377,33 @@ class InteractionsService:
                 }
             },
         }
+
+    @staticmethod
+    def fetch_bearer_token(secret_id: str) -> str:
+        secrets_manager = boto3.client("secretsmanager", region_name="us-west-2")
+        return json.loads(
+            secrets_manager.get_secret_value(SecretId=secret_id)["SecretString"]
+        )["token"]
+
+    @staticmethod
+    def prod(url, token) -> dict:
+        configuration = {"base_url": url, "timeout": 30, "token": token}
+        return configuration
+
+    @staticmethod
+    def from_env(env: str = os.getenv("ENV", "local")) -> dict:
+        """Load the configuration based on the environment."""
+        url = os.getenv(
+            "INTERACTION_STORE_URL",
+            "https://s2ub.prod.s2.allenai.org/service/noraretrieval",
+        )
+        token = os.getenv(
+            "INTERACTION_STORE_TOKEN",
+            InteractionsService.fetch_bearer_token(
+                "nora/prod/interaction-bearer-token"
+            ),
+        )
+        _envs = {
+            "prod": InteractionsService.prod(url, token),
+        }
+        return _envs.get(env, InteractionsService.prod(url, token))
