@@ -2,7 +2,6 @@ from typing import Optional
 
 from nora_lib.interactions.interactions_service import InteractionsService
 from nora_lib.interactions.models import ReturnedMessage
-from nora_lib.interactions.config import Config
 
 
 class ContextService:
@@ -13,10 +12,10 @@ class ContextService:
     def __init__(
         self,
         agent_actor_id: str,  # uuid representing this agent in interaction store
-        config: Optional[Config] = None,
+        config: dict,
     ):
         # If no config is provided, load the configuration based on the environment
-        self.config = config if config else Config.from_env()
+        self.config = config if config else InteractionsService.from_env()
 
         self.interactions_service = self._get_interactions_service()
         self.agent_actor_id = agent_actor_id
