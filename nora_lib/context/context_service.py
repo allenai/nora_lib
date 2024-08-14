@@ -16,7 +16,7 @@ class ContextService:
         config: Optional[Config] = None,
     ):
         # If no config is provided, load the configuration based on the environment
-        self.config = config if config else Config.from_config()
+        self.config = config if config else Config.from_env()
 
         self.interactions_service = self._get_interactions_service()
         self.agent_actor_id = agent_actor_id
