@@ -41,5 +41,3 @@ class Config:
             "local": Config.prod(url),
         }
         return _envs.get(env, Config.prod(url))
-
-
