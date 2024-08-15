@@ -7,15 +7,20 @@ by dependent projects.
 """
 
 import json
+import logging
 import os
 from uuid import UUID
 from datetime import datetime, timezone
 from typing import Generic, Optional, Type, Any
 from abc import ABC, abstractmethod
+from pydantic import BaseModel
 
 from nora_lib.tasks.models import AsyncTaskState, R, TASK_STATUSES
 from nora_lib.interactions.interactions_service import InteractionsService
-from nora_lib.interactions.models import Event
+from nora_lib.interactions.models import Event, ReturnedEvent
+from nora_lib.pubsub import PubsubService
+
+TASK_STATE_CHANGE_TOPIC = "istore:event:task_state"
 
 
 class NoSuchTaskException(Exception):
@@ -81,7 +86,11 @@ class RemoteStateManagerFactory:
     """
 
     def __init__(
-        self, agent_name: str, actor_id: UUID, interactions_service: InteractionsService
+        self,
+        agent_name: str,
+        actor_id: UUID,
+        interactions_service: InteractionsService,
+        pubsub_service: PubsubService,
     ):
         """
         :param agent_name: Used to form the event type that will hold the task state in the interactions store
@@ -91,10 +100,15 @@ class RemoteStateManagerFactory:
         self.agent_name = agent_name
         self.actor_id = actor_id
         self.interactions_service = interactions_service
+        self.pubsub_service = pubsub_service
 
     def for_message(self, message_id: str) -> IStateManager[R]:
         return RemoteStateManager(
-            self.agent_name, self.actor_id, self.interactions_service, message_id
+            self.agent_name,
+            self.actor_id,
+            self.interactions_service,
+            self.pubsub_service,
+            message_id,
         )
 
 
@@ -110,6 +124,7 @@ class RemoteStateManager(IStateManager[R]):
         agent_name: str,
         actor_id: UUID,
         interactions_service: InteractionsService,
+        pubsub_service: PubsubService,
         message_id: str,
     ):
         """
@@ -121,6 +136,7 @@ class RemoteStateManager(IStateManager[R]):
         self.actor_id = actor_id
         self.message_id = message_id
         self.interactions_service = interactions_service
+        self.pubsub_service = pubsub_service
 
     def read_state(self, task_id: str) -> AsyncTaskState[R]:
         event_type = RemoteStateManager._TASK_STATE_EVENT_TYPE.format(self.agent_name)
@@ -153,11 +169,33 @@ class RemoteStateManager(IStateManager[R]):
         return latest_state
 
     def write_state(self, state: AsyncTaskState[R]) -> None:
+        event_type = RemoteStateManager._TASK_STATE_EVENT_TYPE.format(self.agent_name)
         event = Event(
-            type=RemoteStateManager._TASK_STATE_EVENT_TYPE.format(self.agent_name),
+            type=event_type,
             actor_id=self.actor_id,
             timestamp=datetime.now(tz=timezone.utc),
             message_id=self.message_id,
             data=state.model_dump(),
         )
-        self.interactions_service.save_event(event)
+        event_id = self.interactions_service.save_event(event)
+        returned_event = ReturnedEvent(
+            event_id=event_id,
+            type=event.type,
+            actor_id=event.actor_id,
+            message_id=event.message_id,
+            timestamp=event.timestamp,
+        )
+        payload = TaskStateChangeNotification(
+            agent=self.agent_name, event=returned_event
+        )
+        try:
+            self.pubsub_service.publish(TASK_STATE_CHANGE_TOPIC, payload.model_dump())
+        except Exception as e:
+            logging.exception(
+                f"Failed to publish event to pubsub topic {TASK_STATE_CHANGE_TOPIC} at {self.pubsub_service.base_url}"
+            )
+
+
+class TaskStateChangeNotification(BaseModel):
+    agent: str
+    event: ReturnedEvent

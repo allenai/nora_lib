@@ -54,6 +54,27 @@ class Message(BaseModel):
     def serialize_ts(self, ts: datetime):
         return ts.isoformat()
 
+    @staticmethod
+    def from_returned_message(message: "ReturnedMessage") -> "Message":
+        if message.message_id is None:
+            raise ValueError("Message ID is required")
+        if message.thread_id is None:
+            raise ValueError("Thread ID is required")
+        if message.channel_id is None:
+            raise ValueError("Channel ID is required")
+        if message.surface is None:
+            raise ValueError("Surface is required")
+        return Message(
+            message_id=message.message_id,
+            actor_id=message.actor_id,
+            text=message.text,
+            thread_id=message.thread_id,
+            channel_id=message.channel_id,
+            surface=message.surface,
+            ts=message.ts,
+            annotations=message.annotations,
+        )
+
 
 class Event(BaseModel):
     """event object to be sent to the interactions service; requires association with a message, thread or channel id"""
@@ -77,6 +98,23 @@ class Event(BaseModel):
     def serialize_timestamp(self, timestamp: datetime):
         return timestamp.isoformat()
 
+    @staticmethod
+    def from_returned_event(event: "ReturnedEvent") -> "Event":
+        if event.channel_id is None:
+            raise ValueError("Channel ID is required")
+        elif event.thread_id is None and event.message_id is not None:
+            raise ValueError("Thread ID is required if Message ID is present")
+        return Event(
+            type=event.type,
+            actor_id=event.actor_id,
+            timestamp=event.timestamp,
+            text=event.text,
+            data=event.data,
+            message_id=event.message_id,
+            thread_id=event.thread_id,
+            channel_id=event.channel_id,
+        )
+
 
 class Thread(BaseModel):
     thread_id: str
@@ -98,6 +136,7 @@ class ReturnedEvent(BaseModel):
     message_id: Optional[str] = None
     thread_id: Optional[str] = None
     channel_id: Optional[str] = None
+    surface: Optional[Surface] = None
 
     @field_serializer("actor_id")
     def serialize_actor_id(self, actor_id: UUID):
@@ -120,6 +159,7 @@ class ReturnedMessage(BaseModel):
     preceding_messages: List["ReturnedMessage"] = Field(default_factory=list)
     thread_id: Optional[str] = None
     channel_id: Optional[str] = None
+    surface: Optional[Surface] = None
     annotations: List[Annotation] = Field(default_factory=list)
 
     @classmethod
