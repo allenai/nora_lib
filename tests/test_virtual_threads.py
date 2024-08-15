@@ -33,9 +33,10 @@ def _event(msg: Message, type: str, data: dict):
 
 
 @unittest.skip("Requires a local instance of the interactions service")
+# When running this test you will need to set INTERACTION_STORE_URL in the env
 class TestVirtualThreads(unittest.TestCase):
     def setUp(self):
-        self.svc = InteractionsService("http://localhost:9080", 30, None)
+        self.svc = InteractionsService.from_env()
 
     def test_placeholder(self):
         virtual_thread_1 = "virtual_thread_1"

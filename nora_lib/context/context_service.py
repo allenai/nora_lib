@@ -16,6 +16,7 @@ class ContextService:
         interactions_bearer_token: Optional[str],
         timeout: int = 30,
     ):
+        # If no config is provided, load the configuration based on the environment
         self.interactions_service = self._get_interactions_service(
             interactions_base_url, interactions_bearer_token, timeout
         )

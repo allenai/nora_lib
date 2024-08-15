@@ -1,6 +1,8 @@
 import requests
 from typing import Optional, List
 import json
+import os
+import boto3
 
 from nora_lib.interactions.models import (
     AnnotationBatch,
@@ -373,30 +375,24 @@ class InteractionsService:
         }
 
     @staticmethod
-    def prod() -> "InteractionsService":
-        return InteractionsService(
-            base_url="https://s2ub.prod.s2.allenai.org/service/noraretrieval",
-            timeout=30,
-            token=InteractionsService._fetch_bearer_token(
-                "nora/prod/interaction-bearer-token"
-            ),
-        )
-
-    @staticmethod
-    def dev() -> "InteractionsService":
-        return InteractionsService(
-            base_url="https://s2ub.dev.s2.allenai.org/service/noraretrieval",
-            timeout=30,
-            token=InteractionsService._fetch_bearer_token(
-                "nora/dev/interaction-bearer-token"
-            ),
-        )
-
-    @staticmethod
-    def _fetch_bearer_token(secret_id: str) -> str:
-        import boto3
-
+    def fetch_bearer_token(secret_id: str) -> str:
         secrets_manager = boto3.client("secretsmanager", region_name="us-west-2")
         return json.loads(
             secrets_manager.get_secret_value(SecretId=secret_id)["SecretString"]
         )["token"]
+
+    @staticmethod
+    def from_env() -> "InteractionsService":
+        """Load the configuration based on the environment."""
+        url = os.getenv(
+            "INTERACTION_STORE_URL",
+            "https://s2ub.prod.s2.allenai.org/service/noraretrieval",
+        )
+        token = os.getenv(
+            "INTERACTION_STORE_TOKEN",
+            InteractionsService.fetch_bearer_token(
+                "nora/prod/interaction-bearer-token"
+            ),
+        )
+
+        return InteractionsService(base_url=url, token=token)
