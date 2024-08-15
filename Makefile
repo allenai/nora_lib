@@ -14,7 +14,7 @@ mypy: build-image
 	docker run --rm $(IMAGE_TAG) /bin/bash -c 'mypy nora_lib tests'
 
 pytest:
-	docker run --rm $(IMAGE_TAG) pytest
+	docker run --rm --env-file docker.env $(IMAGE_TAG) pytest
 
 format:
 	docker run --rm -it \
