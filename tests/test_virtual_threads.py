@@ -36,8 +36,7 @@ def _event(msg: Message, type: str, data: dict):
 # When running this test you will need to set INTERACTION_STORE_URL in the env
 class TestVirtualThreads(unittest.TestCase):
     def setUp(self):
-        config = InteractionsService.from_env()
-        self.svc = InteractionsService(config)
+        self.svc = InteractionsService.from_env()
 
     def test_placeholder(self):
         virtual_thread_1 = "virtual_thread_1"

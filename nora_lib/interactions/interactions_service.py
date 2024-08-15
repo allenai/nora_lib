@@ -21,14 +21,10 @@ class InteractionsService:
     Service which saves interactions to the Interactions API
     """
 
-    def __init__(self, configuration):
-        self.base_url = configuration["base_url"]
-        self.timeout = configuration["timeout"]
-        self.headers = (
-            {"Authorization": f"Bearer {configuration['token']}"}
-            if configuration["token"]
-            else None
-        )
+    def __init__(self, base_url: str, timeout: int = 30, token: Optional[str] = None):
+        self.base_url = base_url
+        self.timeout = timeout
+        self.headers = {"Authorization": f"Bearer {token}"} if token else None
 
     def save_message(
         self, message: Message, virtual_thread_id: Optional[str] = None
@@ -386,12 +382,7 @@ class InteractionsService:
         )["token"]
 
     @staticmethod
-    def prod(url, token) -> dict:
-        configuration = {"base_url": url, "timeout": 30, "token": token}
-        return configuration
-
-    @staticmethod
-    def from_env(env: str = os.getenv("ENV", "local")) -> dict:
+    def from_env() -> "InteractionsService":
         """Load the configuration based on the environment."""
         url = os.getenv(
             "INTERACTION_STORE_URL",
@@ -403,7 +394,5 @@ class InteractionsService:
                 "nora/prod/interaction-bearer-token"
             ),
         )
-        _envs = {
-            "prod": InteractionsService.prod(url, token),
-        }
-        return _envs.get(env, InteractionsService.prod(url, token))
+
+        return InteractionsService(base_url=url, token=token)
