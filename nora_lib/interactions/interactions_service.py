@@ -310,7 +310,7 @@ class InteractionsService:
         Fetch all threads, messages, and events including nested ones for a given channel
         """
         channel_search_url = f"{self.base_url}/interaction/v1/search/channel"
-        event_query = {"filter": {"type": event_types or []}}
+        event_query = {"filter": {"type": event_types} if event_types else None}
         message_query = {
             "relations": {"events": event_query, "annotations:": {}},
             "filter": {"min_timestamp": min_timestamp} if min_timestamp else None,
@@ -347,7 +347,7 @@ class InteractionsService:
         Fetch all messages and events including nested ones for a given thread
         """
         thread_search_url = f"{self.base_url}/interaction/v1/search/thread"
-        event_query = {"filter": {"type": event_types or []}}
+        event_query = {"filter": {"type": event_types} if event_types else None}
         message_query = {
             "relations": {"events": event_query, "annotations:": {}},
             "filter": {"min_timestamp": min_timestamp} if min_timestamp else None,
