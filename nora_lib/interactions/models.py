@@ -229,14 +229,18 @@ class VirtualThread:
 
 
 class ServicingCost(BaseModel):
-    """Cost of servicing a user prompt by an agent"""
+    """
+    If a task agent has a different cost model,
+    e.g having other fields such as num prompt/completion tokens,
+    it should inherit this class and add those fields.
+    """
     dollar_cost: float
     num_tokens: Optional[int]
     model_name: Optional[str]
 
 
 class CostReport(BaseModel):
-    """Wrapping servicing cost with event metadata"""
+    """Wrapping cost with event metadata so that it can be converted to an Event object."""
     actor_id: UUID
     message_id: str
     cost: ServicingCost
