@@ -228,6 +228,33 @@ class VirtualThread:
     EVENT_TYPE_FIELD = "event_type"
 
 
+class ServicingCost(BaseModel):
+    """Cost of servicing a user prompt by an agent"""
+    dollar_cost: float
+    num_tokens: Optional[int]
+    model_name: Optional[str]
+
+
+class CostReport(BaseModel):
+    """Wrapping servicing cost with event metadata"""
+    actor_id: UUID
+    message_id: str
+    cost: ServicingCost
+
+    @field_serializer("actor_id")
+    def serialize_actor_id(self, actor_id: UUID):
+        return str(actor_id)
+
+    def to_event(self) -> Event:
+        return Event(
+            type="cost_report",
+            actor_id=self.actor_id,
+            timestamp=datetime.now(),
+            data=self.cost.model_dump(),
+            message_id=self.message_id,
+        )
+
+
 def thread_message_lookup_request(message_id: str, event_type: str) -> dict:
     """retrieve messages and events for the thread associated with a message"""
     return {
