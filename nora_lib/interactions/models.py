@@ -234,6 +234,7 @@ class ServicingCost(BaseModel):
     e.g having other fields such as num prompt/completion tokens,
     it should inherit this class and add those fields.
     """
+    
     dollar_cost: float
     num_tokens: Optional[int]
     model_name: Optional[str]
@@ -241,6 +242,7 @@ class ServicingCost(BaseModel):
 
 class CostReport(BaseModel):
     """Wrapping cost with event metadata so that it can be converted to an Event object."""
+
     actor_id: UUID
     message_id: str
     cost: ServicingCost
