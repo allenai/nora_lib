@@ -234,7 +234,7 @@ class ServicingCost(BaseModel):
     e.g having other fields such as num prompt/completion tokens,
     it should inherit this class and add those fields.
     """
-    
+
     dollar_cost: float
     num_tokens: Optional[int]
     model_name: Optional[str]
