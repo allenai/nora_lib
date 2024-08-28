@@ -236,8 +236,8 @@ class ServicingCost(BaseModel):
     """
 
     dollar_cost: float
-    num_tokens: Optional[int]
-    model_name: Optional[str]
+    num_tokens: Optional[int] = None
+    model_name: Optional[str] = None
 
 
 class CostReport(BaseModel):
