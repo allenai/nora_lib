@@ -6,13 +6,14 @@ import boto3
 
 from nora_lib.interactions.models import (
     AnnotationBatch,
+    CostReport,
     Event,
     Message,
     ReturnedMessage,
     ReturnedEvent,
     Thread,
     ThreadRelationsResponse,
-    VirtualThread, CostReport,
+    VirtualThread,
 )
 
 
