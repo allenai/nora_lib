@@ -5,7 +5,7 @@ Model for interactions to be sent to the interactions service.
 import json
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_serializer, ConfigDict
@@ -228,16 +228,27 @@ class VirtualThread:
     EVENT_TYPE_FIELD = "event_type"
 
 
-class ServicingCost(BaseModel):
-    """
-    If a task agent has a different cost model,
-    e.g having other fields such as num prompt/completion tokens,
-    it should inherit this class and add those fields.
-    """
+class CostMetadata(BaseModel):
+    """Metadata for cost calculation"""
 
-    dollar_cost: float
-    num_tokens: Optional[int] = None
-    model_name: Optional[str] = None
+    total_cost: float = Field(
+        description="Total cost of processing a message, including costs"
+        " from external tools which may report their own cost events",
+    )
+    self_cost: Optional[float] = Field(
+        default=None,
+        description="Cost of processing the message, excluding cost of tool calls",
+    )
+    sub_costs: dict[str, Optional[float]] = Field(
+        default_factory=dict,
+        description="Breakdown of individual sub-costs in the total cost. "
+        "Not standardized; could include e.g. cost of each tool, llm cost, cloud compute cost, storage I/O cost, etc.",
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional metadata for cost calculation.  This is even less structured than sub_costs, "
+        "and could store things like raw token counts or timings that are used to calculate costs.",
+    )
 
 
 class CostReport(BaseModel):
@@ -245,7 +256,8 @@ class CostReport(BaseModel):
 
     actor_id: UUID
     message_id: str
-    cost: ServicingCost
+    cost_metadata: CostMetadata
+    description: Optional[str] = None
 
     @field_serializer("actor_id")
     def serialize_actor_id(self, actor_id: UUID):
@@ -256,7 +268,8 @@ class CostReport(BaseModel):
             type="cost_report",
             actor_id=self.actor_id,
             timestamp=datetime.now(),
-            data=self.cost.model_dump(),
+            text=self.description,
+            data=self.cost_metadata.model_dump(),
             message_id=self.message_id,
         )
 
