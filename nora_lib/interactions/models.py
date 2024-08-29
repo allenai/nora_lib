@@ -116,6 +116,12 @@ class Event(BaseModel):
         )
 
 
+class EventType(Enum, str):
+    """Enumeration of event types"""
+
+    COST_REPORT = "cost_report"
+
+
 class Thread(BaseModel):
     thread_id: str
     channel_id: str
@@ -235,6 +241,7 @@ class CostDetail(BaseModel):
     it should create another class inheriting this class and add those fields.
     See LLMCost and LLMTokenBreakdown below for examples.
     """
+
     pass
 
 
@@ -279,7 +286,7 @@ class CostReport(BaseModel):
 
     def to_event(self) -> Event:
         return Event(
-            type="cost_report",
+            type=EventType.COST_REPORT.value,
             actor_id=self.actor_id,
             timestamp=datetime.now(),
             text=self.service_cost.description,
