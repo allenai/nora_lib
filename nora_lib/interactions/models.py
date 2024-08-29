@@ -116,7 +116,7 @@ class Event(BaseModel):
         )
 
 
-class EventType(Enum, str):
+class EventType(Enum):
     """Enumeration of event types"""
 
     COST_REPORT = "cost_report"
