@@ -281,6 +281,8 @@ class CostReport(BaseModel):
             actor_id=self.actor_id,
             timestamp=datetime.now(),
             text=self.service_cost.description,
+            # This flag is needed to serialize subclass
+            # https://docs.pydantic.dev/latest/concepts/serialization/#serializeasany-annotation
             data=self.service_cost.model_dump(serialize_as_any=True),
             message_id=self.message_id,
         )
