@@ -229,6 +229,12 @@ class VirtualThread:
 
 
 class CostDetail(BaseModel):
+    """
+    Base class to store details of cost to service a request by an agent.
+    If an agent has different cost details,
+    it should create another class inheriting this class and add those fields.
+    See LLMCost and LLMTokenBreakdown below for examples.
+    """
     pass
 
 
@@ -247,11 +253,7 @@ class LLMTokenBreakdown(CostDetail):
 
 
 class ServiceCost(BaseModel):
-    """
-    Base class to store cost of servicing a request by an agent.
-    If an agent has different cost fields,
-    it should create another cost object/class inheriting this class and add those fields.
-    """
+    """Cost of servicing a request by an agent"""
 
     dollar_cost: float
     service_provider: Optional[str] = Field(
