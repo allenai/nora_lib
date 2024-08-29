@@ -5,7 +5,7 @@ Model for interactions to be sent to the interactions service.
 import json
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_serializer, ConfigDict
@@ -228,27 +228,40 @@ class VirtualThread:
     EVENT_TYPE_FIELD = "event_type"
 
 
-class CostMetadata(BaseModel):
-    """Metadata for cost calculation"""
+class CostDetail(BaseModel):
+    pass
 
-    total_cost: float = Field(
-        description="Total cost of processing a message, including costs"
-        " from external tools which may report their own cost events",
+
+class LLMCost(CostDetail):
+    """LLM cost detail"""
+
+    token_count: int
+    model_name: str
+
+
+class LLMTokenBreakdown(CostDetail):
+    """Token usage breakdown"""
+
+    prompt_tokens: int
+    completion_tokens: int
+
+
+class ServiceCost(BaseModel):
+    """
+    Base class to store cost of servicing a request by an agent.
+    If an agent has different cost fields,
+    it should create another cost object/class inheriting this class and add those fields.
+    """
+
+    dollar_cost: float
+    service_provider: Optional[str] = Field(
+        default=None, description="For example, OpenAI/Anthropic/Modal/Cohere"
     )
-    self_cost: Optional[float] = Field(
-        default=None,
-        description="Cost of processing the message, excluding cost of tool calls",
+    description: Optional[str] = Field(
+        default=None, description="Describe the function within the agent"
     )
-    sub_costs: dict[str, Optional[float]] = Field(
-        default_factory=dict,
-        description="Breakdown of individual sub-costs in the total cost. "
-        "Not standardized; could include e.g. cost of each tool, llm cost, cloud compute cost, storage I/O cost, etc.",
-    )
-    metadata: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Additional metadata for cost calculation.  This is even less structured than sub_costs, "
-        "and could store things like raw token counts or timings that are used to calculate costs.",
-    )
+    tool_name: Optional[str] = Field(default=None, description="For example, PaperQA")
+    details: List[CostDetail] = []
 
 
 class CostReport(BaseModel):
@@ -256,8 +269,7 @@ class CostReport(BaseModel):
 
     actor_id: UUID
     message_id: str
-    cost_metadata: CostMetadata
-    description: Optional[str] = None
+    service_cost: ServiceCost
 
     @field_serializer("actor_id")
     def serialize_actor_id(self, actor_id: UUID):
@@ -268,8 +280,8 @@ class CostReport(BaseModel):
             type="cost_report",
             actor_id=self.actor_id,
             timestamp=datetime.now(),
-            text=self.description,
-            data=self.cost_metadata.model_dump(),
+            text=self.service_cost.description,
+            data=self.service_cost.model_dump(serialize_as_any=True),
             message_id=self.message_id,
         )
 
