@@ -8,7 +8,7 @@ import boto3
 
 from nora_lib.interactions.models import (
     AnnotationBatch,
-    CostReport,
+    StepCost,
     Event,
     Message,
     ReturnedMessage,
@@ -372,14 +372,14 @@ class InteractionsService:
         response.raise_for_status()
         return response.json()
 
-    def report_cost(self, cost_report: CostReport) -> Optional[str]:
+    def report_cost(self, step_cost: StepCost) -> Optional[str]:
         """Save a cost report to the Interactions Store. Returning event id"""
         try:
-            return self.save_event(cost_report.to_event())
+            return self.save_event(step_cost.to_event())
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 404:
                 logging.warning(
-                    f"Cannot find message id {cost_report.message_id} to attach cost report to."
+                    f"Cannot find message id {step_cost.message_id} to attach cost report to."
                 )
                 return None
             else:
