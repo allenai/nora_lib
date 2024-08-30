@@ -119,7 +119,7 @@ class Event(BaseModel):
 class EventType(Enum):
     """Enumeration of event types"""
 
-    COST_REPORT = "cost_report"
+    STEP_COST = "step_cost"
 
 
 class Thread(BaseModel):
@@ -286,7 +286,7 @@ class CostReport(BaseModel):
 
     def to_event(self) -> Event:
         return Event(
-            type=EventType.COST_REPORT.value,
+            type=EventType.STEP_COST.value,
             actor_id=self.actor_id,
             timestamp=datetime.now(),
             text=self.service_cost.description,
