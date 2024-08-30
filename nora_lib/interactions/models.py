@@ -273,8 +273,8 @@ class ServiceCost(BaseModel):
     details: List[CostDetail] = []
 
 
-class StepCost(BaseModel):
-    """Wrapping service cost with event metadata so that it can be converted to an Event object."""
+class CostReport(BaseModel):
+    """Wrapping cost with event metadata so that it can be converted to an Event object."""
 
     actor_id: UUID
     message_id: str
