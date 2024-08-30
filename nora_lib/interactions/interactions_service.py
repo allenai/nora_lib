@@ -1,3 +1,5 @@
+import logging
+
 import requests
 from typing import Optional, List
 import json
@@ -6,6 +8,7 @@ import boto3
 
 from nora_lib.interactions.models import (
     AnnotationBatch,
+    CostReport,
     Event,
     Message,
     ReturnedMessage,
@@ -57,7 +60,7 @@ class InteractionsService:
 
     def save_event(self, event: Event, virtual_thread_id: Optional[str] = None) -> str:
         """
-        Save an event to the Interaction Store
+        Save an event to the Interaction Store. Returns an event id.
         :param virtual_thread_id: Optional ID of a virtual thread to associate with the event
         """
         event_url = f"{self.base_url}/interaction/v1/event"
@@ -368,6 +371,19 @@ class InteractionsService:
         )
         response.raise_for_status()
         return response.json()
+
+    def report_cost(self, cost_report: CostReport) -> Optional[str]:
+        """Save a cost report to the Interactions Store. Returning event id"""
+        try:
+            return self.save_event(cost_report.to_event())
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                logging.warning(
+                    f"Cannot find message id {cost_report.message_id} to attach cost report to."
+                )
+                return None
+            else:
+                raise e
 
     @staticmethod
     def _channel_lookup_request(

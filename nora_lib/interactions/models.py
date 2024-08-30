@@ -116,6 +116,12 @@ class Event(BaseModel):
         )
 
 
+class EventType(Enum):
+    """Enumeration of event types"""
+
+    COST_REPORT = "cost_report"
+
+
 class Thread(BaseModel):
     thread_id: str
     channel_id: str
@@ -226,6 +232,69 @@ class VirtualThread:
 
     # Data field in the event that contains the type of other events in the virtual thread
     EVENT_TYPE_FIELD = "event_type"
+
+
+class CostDetail(BaseModel):
+    """
+    Base class to store details of cost to service a request by an agent.
+    If an agent has different cost details,
+    it should create another class inheriting this class and add those fields.
+    See LLMCost and LLMTokenBreakdown below for examples.
+    """
+
+    pass
+
+
+class LLMCost(CostDetail):
+    """LLM cost detail"""
+
+    token_count: int
+    model_name: str
+
+
+class LLMTokenBreakdown(CostDetail):
+    """Token usage breakdown"""
+
+    prompt_tokens: int
+    completion_tokens: int
+
+
+class ServiceCost(BaseModel):
+    """Cost of servicing a request by an agent"""
+
+    dollar_cost: float
+    service_provider: Optional[str] = Field(
+        default=None, description="For example, OpenAI/Anthropic/Modal/Cohere"
+    )
+    description: Optional[str] = Field(
+        default=None, description="Describe the function within the agent"
+    )
+    tool_name: Optional[str] = Field(default=None, description="For example, PaperQA")
+    details: List[CostDetail] = []
+
+
+class CostReport(BaseModel):
+    """Wrapping cost with event metadata so that it can be converted to an Event object."""
+
+    actor_id: UUID
+    message_id: str
+    service_cost: ServiceCost
+
+    @field_serializer("actor_id")
+    def serialize_actor_id(self, actor_id: UUID):
+        return str(actor_id)
+
+    def to_event(self) -> Event:
+        return Event(
+            type=EventType.COST_REPORT.value,
+            actor_id=self.actor_id,
+            timestamp=datetime.now(),
+            text=self.service_cost.description,
+            # This flag is needed to serialize subclass
+            # https://docs.pydantic.dev/latest/concepts/serialization/#serializeasany-annotation
+            data=self.service_cost.model_dump(serialize_as_any=True),
+            message_id=self.message_id,
+        )
 
 
 def thread_message_lookup_request(message_id: str, event_type: str) -> dict:
