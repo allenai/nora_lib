@@ -1,3 +1,5 @@
+import logging
+
 import requests
 from typing import Optional, List
 import json
@@ -370,9 +372,18 @@ class InteractionsService:
         response.raise_for_status()
         return response.json()
 
-    def report_cost(self, cost_report: CostReport) -> str:
-        """Save a cost report to the Interactions Store"""
-        return self.save_event(cost_report.to_event())
+    def report_cost(self, cost_report: CostReport) -> Optional[str]:
+        """Save a cost report to the Interactions Store. Returning event id"""
+        try:
+            return self.save_event(cost_report.to_event())
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                logging.warning(
+                    f"Cannot find message id {cost_report.message_id} to attach cost report to."
+                )
+                return None
+            else:
+                raise e
 
     @staticmethod
     def _channel_lookup_request(
