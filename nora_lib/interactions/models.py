@@ -270,6 +270,11 @@ class ServiceCost(BaseModel):
         default=None, description="Describe the function within the agent"
     )
     tool_name: Optional[str] = Field(default=None, description="For example, PaperQA")
+    task_id: Optional[str] = Field(
+        default=None,
+        description="Agent generated task_id used to track nora assigned tasks",
+    )
+    tool_call_id: Optional[str] = None
     details: List[CostDetail] = []
 
 
