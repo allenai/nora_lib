@@ -17,7 +17,6 @@ def _msg(text):
         channel_id=CHANNEL,
         thread_id=THREAD,
         surface=Surface.WEB,
-        ts=datetime.now(),
     )
 
 
@@ -25,14 +24,13 @@ def _event(msg: Message, type: str, data: dict):
     return Event(
         type=type,
         actor_id=ACTOR,
-        timestamp=datetime.now(),
         text="",
         data=data,
         message_id=msg.message_id,
     )
 
 
-@unittest.skip("Requires a local instance of the interactions service")
+# @unittest.skip("Requires a local instance of the interactions service")
 # When running this test you will need to set INTERACTION_STORE_URL in the env
 class TestVirtualThreads(unittest.TestCase):
     def setUp(self):
@@ -50,7 +48,7 @@ class TestVirtualThreads(unittest.TestCase):
         event3 = _event(msg2, "event3", {})
         e_id = self.svc.save_event(event1)
         self.svc.save_event(event2, virtual_thread_1)
-        self.svc.save_event(event3, virtual_thread_2)
+        self.svc.save_event(event3, virtual_thread_1)
         returned_event = self.svc.get_event(e_id)
 
         content = self.svc.get_virtual_thread_content(msg2.message_id, virtual_thread_1)

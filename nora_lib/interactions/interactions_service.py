@@ -51,7 +51,6 @@ class InteractionsService:
                     VirtualThread.ID_FIELD: virtual_thread_id,
                     VirtualThread.EVENT_TYPE_FIELD: VirtualThread.EVENT_TYPE,
                 },
-                timestamp=message.ts,
             )
             self.save_event(event)
 
@@ -79,7 +78,6 @@ class InteractionsService:
                     VirtualThread.ID_FIELD: virtual_thread_id,
                     VirtualThread.EVENT_TYPE_FIELD: event.type,
                 },
-                timestamp=event.timestamp,
             )
             self.save_event(event)
         response_message = json.loads(response.text)

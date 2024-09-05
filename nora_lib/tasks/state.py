@@ -143,10 +143,10 @@ class RemoteStateManager(IStateManager[R]):
                 if state.task_id != task_id:
                     continue
                 if latest_state is None or (
-                    latest_timestamp and event.timestamp > latest_timestamp
+                    latest_timestamp and event.created_at > latest_timestamp
                 ):
                     latest_state = state
-                    latest_timestamp = event.timestamp
+                    latest_timestamp = event.created_at
 
         if not latest_state:
             raise NoSuchTaskException(task_id)

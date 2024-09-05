@@ -43,16 +43,16 @@ class Message(BaseModel):
     thread_id: Optional[str]
     channel_id: str
     surface: Surface
-    ts: datetime
+    # ts: datetime
     annotations: List[Annotation] = Field(default_factory=list)
 
     @field_serializer("actor_id")
     def serialize_actor_id(self, actor_id: UUID):
         return str(actor_id)
 
-    @field_serializer("ts")
-    def serialize_ts(self, ts: datetime):
-        return ts.isoformat()
+    # @field_serializer("ts")
+    # def serialize_ts(self, ts: datetime):
+    #     return ts.isoformat()
 
 
 class Event(BaseModel):
@@ -62,7 +62,7 @@ class Event(BaseModel):
     actor_id: UUID = Field(
         description="identifies actor writing the event to the interaction service"
     )
-    timestamp: datetime
+    # timestamp: datetime
     text: Optional[str] = None
     data: dict = Field(default_factory=dict)
     message_id: Optional[str] = None
@@ -73,9 +73,9 @@ class Event(BaseModel):
     def serialize_actor_id(self, actor_id: UUID):
         return str(actor_id)
 
-    @field_serializer("timestamp")
-    def serialize_timestamp(self, timestamp: datetime):
-        return timestamp.isoformat()
+    # @field_serializer("timestamp")
+    # def serialize_timestamp(self, timestamp: datetime):
+    #     return timestamp.isoformat()
 
 
 class Thread(BaseModel):
@@ -92,7 +92,8 @@ class ReturnedEvent(BaseModel):
     actor_id: UUID = Field(
         description="identifies actor writing the event to the interaction service"
     )
-    timestamp: datetime
+    # timestamp: datetime
+    created_at: datetime
     text: Optional[str] = None
     data: dict = Field(default_factory=dict)
     message_id: Optional[str] = None
@@ -103,9 +104,9 @@ class ReturnedEvent(BaseModel):
     def serialize_actor_id(self, actor_id: UUID):
         return str(actor_id)
 
-    @field_serializer("timestamp")
-    def serialize_timestamp(self, timestamp: datetime):
-        return timestamp.isoformat()
+    @field_serializer("created_at")
+    def serialize_timestamp(self, created_at: datetime):
+        return created_at.isoformat()
 
 
 class ReturnedMessage(BaseModel):
@@ -113,7 +114,7 @@ class ReturnedMessage(BaseModel):
 
     actor_id: UUID
     text: str
-    ts: datetime
+    created_at: datetime
     message_id: Optional[str] = None
     annotated_text: Optional[str] = None
     events: List[Event] = Field(default_factory=list)
@@ -128,7 +129,7 @@ class ReturnedMessage(BaseModel):
         return ReturnedMessage(
             actor_id=event.actor_id,
             text=json.dumps(event.data),
-            ts=event.timestamp,
+            created_at=event.created_at,
             message_id=event.message_id,
         )
 
@@ -147,7 +148,7 @@ class ReturnedAgentContextEvent(BaseModel):
     """Event format returned by interaction service for agent context events"""
 
     actor_id: UUID  # agent that saved this context
-    timestamp: datetime
+    created_at: datetime
     data: AgentMessageData
     type: str
 
@@ -158,7 +159,7 @@ class ReturnedAgentContextMessage(BaseModel):
     message_id: str
     actor_id: UUID
     text: str
-    ts: str
+    created_at: str
     annotated_text: Optional[str] = None
     events: List[ReturnedAgentContextEvent] = Field(default_factory=list)
 
