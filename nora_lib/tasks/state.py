@@ -19,6 +19,7 @@ from nora_lib.tasks.models import AsyncTaskState, R, TASK_STATUSES
 from nora_lib.interactions.interactions_service import InteractionsService
 from nora_lib.interactions.models import Event, ReturnedEvent
 from nora_lib.pubsub import PubsubService
+from nora_lib.context.agent_context import AgentContext
 
 TASK_STATE_CHANGE_TOPIC = "istore:event:task_state"
 
@@ -109,6 +110,15 @@ class RemoteStateManagerFactory:
             self.interactions_service,
             self.pubsub_service,
             message_id,
+        )
+
+    def for_agent_context(self, context: AgentContext) -> IStateManager[R]:
+        return RemoteStateManager(
+            self.agent_name,
+            self.actor_id,
+            self.interactions_service,
+            PubsubService(context.pubsub.base_url, context.pubsub.namespace),
+            context.message.message_id,
         )
 
 
