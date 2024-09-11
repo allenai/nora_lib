@@ -1,13 +1,13 @@
 import setuptools
 
-runtime_requirements = ["pydantic>=2,<3", "requests", "boto3"]
+runtime_requirements = ["pydantic>=2,<3", "requests", "boto3", "aws_requests_auth"]
 
 # For running tests, linting, etc
 dev_requirements = ["mypy", "pytest", "black", "types-requests"]
 
 setuptools.setup(
     name="nora_lib",
-    version="0.3.2",
+    version="0.3.3",
     description="For making and coordinating agents and tools",
     url="https://github.com/allenai/nora_lib",
     packages=setuptools.find_packages(exclude=(["tests"])),
