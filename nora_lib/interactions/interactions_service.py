@@ -5,6 +5,10 @@ from typing import Optional, List
 import json
 import os
 import boto3
+from requests import Response
+from requests.auth import AuthBase
+from aws_requests_auth.aws_auth import AWSRequestsAuth
+from typing import Dict, Any
 
 from nora_lib.interactions.models import (
     AnnotationBatch,
@@ -24,10 +28,29 @@ class InteractionsService:
     Service which saves interactions to the Interactions API
     """
 
-    def __init__(self, base_url: str, timeout: int = 30, token: Optional[str] = None):
+    def __init__(
+        self,
+        base_url: str,
+        timeout: int = 30,
+        token: Optional[str] = None,
+        auth: Optional[AuthBase] = None,
+    ) -> None:
         self.base_url = base_url
         self.timeout = timeout
-        self.headers = {"Authorization": f"Bearer {token}"} if token else None
+        if auth:
+            self.auth = auth
+        elif token:
+            self.auth = BearerAuth(token)
+        else:
+            raise Exception("Either token or auth must be provided")
+
+    def _post(self, url: str, json: Dict[str, Any]) -> Response:
+        return requests.post(
+            url,
+            json=json,
+            auth=self.auth,
+            timeout=self.timeout,
+        )
 
     def save_message(
         self, message: Message, virtual_thread_id: Optional[str] = None
@@ -37,11 +60,9 @@ class InteractionsService:
         :param virtual_thread_id: Optional ID of a virtual thread to associate with the message
         """
         message_url = f"{self.base_url}/interaction/v1/message"
-        response = requests.post(
+        response = self._post(
             message_url,
-            json=message.model_dump(),
-            headers=self.headers,
-            timeout=self.timeout,
+            message.model_dump(),
         )
         response.raise_for_status()
         if virtual_thread_id:
@@ -64,11 +85,9 @@ class InteractionsService:
         :param virtual_thread_id: Optional ID of a virtual thread to associate with the event
         """
         event_url = f"{self.base_url}/interaction/v1/event"
-        response = requests.post(
+        response = self._post(
             event_url,
-            json=event.model_dump(),
-            headers=self.headers,
-            timeout=self.timeout,
+            event.model_dump(),
         )
         response.raise_for_status()
         if virtual_thread_id:
@@ -92,11 +111,9 @@ class InteractionsService:
     def save_thread(self, thread: Thread) -> None:
         """Save a thread to the Interactions API"""
         thread_url = f"{self.base_url}/interaction/v1/thread"
-        response = requests.post(
+        response = self._post(
             thread_url,
-            json=thread.model_dump(),
-            headers=self.headers,
-            timeout=self.timeout,
+            thread.model_dump(),
         )
         response.raise_for_status()
 
@@ -123,11 +140,9 @@ class InteractionsService:
             },
         }
 
-        response = requests.post(
+        response = self._post(
             message_search_url,
-            json=request_body,
-            headers=self.headers,
-            timeout=self.timeout,
+            request_body,
         )
         response.raise_for_status()
         result = ReturnedMessage.model_validate(response.json()["message"])
@@ -160,11 +175,9 @@ class InteractionsService:
     def save_annotation(self, annotation: AnnotationBatch) -> None:
         """Save an annotation to the Interactions API"""
         annotation_url = f"{self.base_url}/interaction/v1/annotation"
-        response = requests.post(
+        response = self._post(
             annotation_url,
-            json=annotation.model_dump(),
-            headers=self.headers,
-            timeout=self.timeout,
+            annotation.model_dump(),
         )
         response.raise_for_status()
 
@@ -175,11 +188,9 @@ class InteractionsService:
             "id": message_id,
             "relations": {"thread": {}, "channel": {}, "events": {}, "annotations": {}},
         }
-        response = requests.post(
+        response = self._post(
             message_url,
-            json=request_body,
-            headers=self.headers,
-            timeout=self.timeout,
+            request_body,
         )
         response.raise_for_status()
         res_dict = response.json()["message"]
@@ -199,11 +210,9 @@ class InteractionsService:
         request_body = {
             "id": event_id,
         }
-        response = requests.post(
+        response = self._post(
             event_url,
-            json=request_body,
-            headers=self.headers,
-            timeout=self.timeout,
+            request_body,
         )
         response.raise_for_status()
         res_dict = response.json()["events"][0]
@@ -223,11 +232,9 @@ class InteractionsService:
             min_timestamp=min_timestamp,
             thread_event_types=thread_event_types,
         )
-        response = requests.post(
+        response = self._post(
             message_url,
-            json=request_body,
-            headers=self.headers,
-            timeout=self.timeout,
+            request_body,
         )
         response.raise_for_status()
         return response.json()
@@ -238,11 +245,9 @@ class InteractionsService:
         """Fetch messages sorted by timestamp and events for agent context"""
         message_url = f"{self.base_url}/interaction/v1/search/message"
         request_body = self._thread_lookup_request(message_id, event_types=event_types)
-        response = requests.post(
+        response = self._post(
             message_url,
-            json=request_body,
-            headers=self.headers,
-            timeout=self.timeout,
+            request_body,
         )
         response.raise_for_status()
         json_response = response.json()
@@ -271,11 +276,9 @@ class InteractionsService:
             },
         }
 
-        response = requests.post(
+        response = self._post(
             thread_search_url,
-            json=request_body,
-            headers=self.headers,
-            timeout=self.timeout,
+            request_body,
         )
         response.raise_for_status()
         return response.json()
@@ -294,11 +297,9 @@ class InteractionsService:
             },
         }
 
-        response = requests.post(
+        response = self._post(
             message_search_url,
-            json=request_body,
-            headers=self.headers,
-            timeout=self.timeout,
+            request_body,
         )
         response.raise_for_status()
         return response.json()
@@ -331,11 +332,9 @@ class InteractionsService:
                 "messages": message_query,
             },
         }
-        response = requests.post(
+        response = self._post(
             channel_search_url,
-            json=request_body,
-            headers=self.headers,
-            timeout=int(self.timeout),
+            request_body,
         )
         response.raise_for_status()
         return response.json()
@@ -363,11 +362,9 @@ class InteractionsService:
                 "events": event_query,
             },
         }
-        response = requests.post(
+        response = self._post(
             thread_search_url,
-            json=request_body,
-            headers=self.headers,
-            timeout=int(self.timeout),
+            request_body,
         )
         response.raise_for_status()
         return response.json()
@@ -432,15 +429,48 @@ class InteractionsService:
     @staticmethod
     def from_env() -> "InteractionsService":
         """Load the configuration based on the environment."""
-        url = os.getenv(
-            "INTERACTION_STORE_URL",
-            "https://s2ub.prod.s2.allenai.org/service/noraretrieval",
+        use_api_gw = (
+            os.getenv("INTERACTION_STORE_VIA_API_GW", "false").lower() == "true"
         )
-        token = os.getenv(
-            "INTERACTION_STORE_TOKEN",
-            InteractionsService.fetch_bearer_token(
-                "nora/prod/interaction-bearer-token"
-            ),
-        )
+        if use_api_gw:
+            return InteractionsService.via_api_gw()
+        else:
+            url = os.getenv(
+                "INTERACTION_STORE_URL",
+                "https://s2ub.prod.s2.allenai.org/service/noraretrieval",
+            )
+            token = os.getenv(
+                "INTERACTION_STORE_TOKEN",
+                InteractionsService.fetch_bearer_token(
+                    "nora/prod/interaction-bearer-token"
+                ),
+            )
 
         return InteractionsService(base_url=url, token=token)
+
+    @staticmethod
+    def via_api_gw() -> "InteractionsService":
+        credentials = boto3.Session().get_credentials()
+        region = "us-west-2"
+        service = "execute-api"
+        host = f"95e441vq07.{service}.{region}.amazonaws.com"
+        url = f"https://{host}/prod/nora-interactions"
+
+        auth = AWSRequestsAuth(
+            aws_access_key=credentials.access_key,
+            aws_secret_access_key=credentials.secret_key,
+            aws_token=credentials.token,
+            aws_host=host,
+            aws_region="us-west-2",
+            aws_service="execute-api",
+        )
+        return InteractionsService(base_url=url, auth=auth)
+
+
+class BearerAuth(requests.auth.AuthBase):
+    def __init__(self, token):
+        self.token = token
+
+    def __call__(self, r):
+        r.headers["Authorization"] = f"Bearer {self.token}"
+        return r
