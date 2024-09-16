@@ -222,8 +222,9 @@ class InteractionsService:
     def fetch_all_threads_by_channel(
         self,
         channel_id: str,
-        min_timestamp: str,
+        min_timestamp: Optional[str] = None,
         thread_event_types: Optional[list[str]] = None,
+        most_recent: Optional[int] = None,
     ) -> dict:
         """Fetch a message from the Interactions API"""
         message_url = f"{self.base_url}/interaction/v1/search/channel"
@@ -231,6 +232,7 @@ class InteractionsService:
             channel_id=channel_id,
             min_timestamp=min_timestamp,
             thread_event_types=thread_event_types,
+            most_recent=most_recent,
         )
         response = self._post(
             message_url,
@@ -240,11 +242,20 @@ class InteractionsService:
         return response.json()
 
     def fetch_thread_messages_and_events_for_message(
-        self, message_id: str, event_types: List[str]
+        self,
+        message_id: str,
+        event_types: List[str],
+        min_timestamp: Optional[str] = None,
+        most_recent: Optional[int] = None,
     ) -> ThreadRelationsResponse:
         """Fetch messages sorted by timestamp and events for agent context"""
         message_url = f"{self.base_url}/interaction/v1/search/message"
-        request_body = self._thread_lookup_request(message_id, event_types=event_types)
+        request_body = self._thread_lookup_request(
+            message_id,
+            event_types=event_types,
+            min_timestamp=min_timestamp,
+            most_recent=most_recent,
+        )
         response = self._post(
             message_url,
             request_body,
@@ -309,15 +320,20 @@ class InteractionsService:
         channel_id: str,
         min_timestamp: Optional[str] = None,
         event_types: Optional[List[str]] = None,
+        most_recent: Optional[int] = None,
     ) -> dict:
         """
         Fetch all threads, messages, and events including nested ones for a given channel
         """
         channel_search_url = f"{self.base_url}/interaction/v1/search/channel"
         event_query = {"filter": None if event_types is None else {"type": event_types}}
+        message_filter_query = {
+            "min_timestamp": min_timestamp if min_timestamp else None,
+            "most_recent": most_recent if most_recent else None,
+        }
         message_query = {
             "relations": {"events": event_query, "annotations:": {}},
-            "filter": {"min_timestamp": min_timestamp} if min_timestamp else None,
+            "filter": message_filter_query,
             "apply_annotations_from_actors": ["*"],
         }
         request_body = {
@@ -344,15 +360,20 @@ class InteractionsService:
         thread_id: str,
         min_timestamp: Optional[str] = None,
         event_types: Optional[List[str]] = None,
+        most_recent: Optional[int] = None,
     ) -> dict:
         """
         Fetch all messages and events including nested ones for a given thread
         """
         thread_search_url = f"{self.base_url}/interaction/v1/search/thread"
         event_query = {"filter": None if event_types is None else {"type": event_types}}
+        message_filter_query = {
+            "min_timestamp": min_timestamp if min_timestamp else None,
+            "most_recent": most_recent if most_recent else None,
+        }
         message_query = {
             "relations": {"events": event_query, "annotations:": {}},
-            "filter": {"min_timestamp": min_timestamp} if min_timestamp else None,
+            "filter": message_filter_query,
             "apply_annotations_from_actors": ["*"],
         }
         request_body = {
@@ -384,16 +405,23 @@ class InteractionsService:
 
     @staticmethod
     def _channel_lookup_request(
-        channel_id: str, min_timestamp: str, thread_event_types: Optional[list[str]]
+        channel_id: str,
+        min_timestamp: Optional[str] = None,
+        thread_event_types: Optional[list[str]] = None,
+        most_recent: Optional[int] = None,
     ) -> dict:
         """Interaction service API request to get threads and messages for a channel"""
+        message_filter_query = {
+            "min_timestamp": min_timestamp if min_timestamp else None,
+            "most_recent": most_recent if most_recent else None,
+        }
         return {
             "id": channel_id,
             "relations": {
                 "threads": {
                     "relations": {
                         "messages": {
-                            "filter": {"min_timestamp": min_timestamp},
+                            "filter": message_filter_query,
                             "apply_annotations_from_actors": ["*"],
                         },
                         "events": {"filter": {"type": thread_event_types or []}},
@@ -403,14 +431,24 @@ class InteractionsService:
         }
 
     @staticmethod
-    def _thread_lookup_request(message_id: str, event_types: list[str]) -> dict:
+    def _thread_lookup_request(
+        message_id: str,
+        event_types: list[str],
+        min_timestamp: Optional[str] = None,
+        most_recent: Optional[int] = None,
+    ) -> dict:
         """will return all messages for the thread containing the given message and events associated with each message"""
+        message_filter_query = {
+            "min_timestamp": min_timestamp if min_timestamp else None,
+            "most_recent": most_recent if most_recent else None,
+        }
         return {
             "id": message_id,
             "relations": {
                 "thread": {
                     "relations": {
                         "messages": {
+                            "filter": message_filter_query,
                             "relations": {"events": {"filter": {"type": event_types}}},
                             "apply_annotations_from_actors": ["*"],
                         },
