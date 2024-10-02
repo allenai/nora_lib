@@ -156,7 +156,6 @@ class RemoteStateManager(IStateManager[R]):
         event = Event(
             type=RemoteStateManager._TASK_STATE_EVENT_TYPE.format(self.agent_name),
             actor_id=self.actor_id,
-            timestamp=datetime.now(tz=timezone.utc),
             message_id=self.message_id,
             data=state.model_dump(),
         )

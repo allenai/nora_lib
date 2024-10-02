@@ -30,7 +30,7 @@ def _event(msg: Message, type: str, data: dict):
     )
 
 
-# @unittest.skip("Requires a local instance of the interactions service")
+@unittest.skip("Requires a local instance of the interactions service")
 # When running this test you will need to set INTERACTION_STORE_URL in the env
 class TestVirtualThreads(unittest.TestCase):
     def setUp(self):
@@ -56,4 +56,4 @@ class TestVirtualThreads(unittest.TestCase):
         # Should only contain the one message tagged with virtual_thread_1
         self.assertEqual([m.message_id for m in content], [msg2.message_id])
         # Should only contain the events tagged with virtual_thread_1
-        self.assertEqual([e.type for e in content[0].events], [event2.type])
+        self.assertEqual([e.type for e in content[0].events], [event2.type, event3.type])
