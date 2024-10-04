@@ -1,4 +1,4 @@
-from typing import Dict, Any, Iterator
+from typing import Dict, Any, Iterator, Optional
 
 import os
 import json
@@ -10,7 +10,7 @@ from pydantic import BaseModel
 class PubsubService:
     """Client for Nora pubsub backend"""
 
-    def __init__(self, base_url: str, namespace: str):
+    def __init__(self, base_url: str, namespace: Optional[str] = None):
         """
         :param base_url: pubsub API URL
         :param namespace: Topic namespace
@@ -25,7 +25,8 @@ class PubsubService:
         """
         body = {"url": url}
         requests.post(
-            f"{self.base_url}/subscribe/webhook/{self.namespace}:{topic}", json=body
+            f"{self.base_url}/subscribe/webhook/{self._fully_qualified_topic(topic)}",
+            json=body,
         )
 
     def unsubscribe_webhook(self, topic: str, url: str):
@@ -34,7 +35,8 @@ class PubsubService:
         """
         body = {"url": url}
         requests.post(
-            f"{self.base_url}/unsubscribe/webhook/{self.namespace}:{topic}", json=body
+            f"{self.base_url}/unsubscribe/webhook/{self._fully_qualified_topic(topic)}",
+            json=body,
         )
 
     def subscribe_sse(self, topic: str) -> Iterator[str]:
@@ -43,7 +45,8 @@ class PubsubService:
         Returns an iterator that yields message payloads as they are published
         """
         response = requests.get(
-            f"{self.base_url}/subscribe/sse/{self.namespace}:{topic}", stream=True
+            f"{self.base_url}/subscribe/sse/{self._fully_qualified_topic(topic)}",
+            stream=True,
         )
         for line in response.iter_lines():
             if line and line.startswith(b"data:"):
@@ -55,9 +58,12 @@ class PubsubService:
         """
         Publish a message to a topic
         """
-        ns_topic = f"{self.namespace}:{topic}"
+        ns_topic = self._fully_qualified_topic(topic)
         event = PublishedEvent(topic=ns_topic, payload=payload)
         requests.post(f"{self.base_url}/publish/{ns_topic}", json=event.model_dump())
+
+    def _fully_qualified_topic(self, topic: str) -> str:
+        return f"{self.namespace}:{topic}" if self.namespace else topic
 
     @staticmethod
     def from_env() -> "PubsubService":
