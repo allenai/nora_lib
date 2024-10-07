@@ -3,6 +3,7 @@ from typing import Dict, Any, Iterator, Optional
 import os
 import json
 import requests
+import signal
 
 from pydantic import BaseModel
 
@@ -48,6 +49,8 @@ class PubsubService:
             f"{self.base_url}/subscribe/sse/{self._fully_qualified_topic(topic)}",
             stream=True,
         )
+        signal.signal(signal.SIGINT, lambda signum, frame: response.close())
+        signal.signal(signal.SIGTERM, lambda signum, frame: response.close())
         for line in response.iter_lines():
             if line and line.startswith(b"data:"):
                 payload = line[5:].decode("utf-8").strip()
