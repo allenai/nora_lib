@@ -242,6 +242,7 @@ class CostDetail(BaseModel):
     See LLMCost and LLMTokenBreakdown below for examples.
     """
 
+    model_config = ConfigDict(protected_namespaces=())
     pass
 
 
