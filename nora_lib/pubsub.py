@@ -40,17 +40,21 @@ class PubsubService:
             json=body,
         )
 
-    def subscribe_sse(self, topic: str) -> Iterator[str]:
+    def subscribe_sse(self, topic: str, handle_signals: bool = False) -> Iterator[str]:
         """
         Subscribe to a topic using Server-Sent Events
         Returns an iterator that yields message payloads as they are published
+
+        If handle_signals=True,
+          will install a signal handler to close the connection on SIGINT and SIGTERM
         """
         response = requests.get(
             f"{self.base_url}/subscribe/sse/{self._fully_qualified_topic(topic)}",
             stream=True,
         )
-        signal.signal(signal.SIGINT, lambda signum, frame: response.close())
-        signal.signal(signal.SIGTERM, lambda signum, frame: response.close())
+        if handle_signals:
+            signal.signal(signal.SIGINT, lambda signum, frame: response.close())
+            signal.signal(signal.SIGTERM, lambda signum, frame: response.close())
         for line in response.iter_lines():
             if line and line.startswith(b"data:"):
                 payload = line[5:].decode("utf-8").strip()
