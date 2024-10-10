@@ -1,9 +1,12 @@
+import logging
 from typing import Dict, Any, Iterator, Optional
+from contextlib import contextmanager
 
 import os
 import json
 import requests
 import signal
+from time import sleep
 
 from pydantic import BaseModel
 
@@ -40,26 +43,78 @@ class PubsubService:
             json=body,
         )
 
-    def subscribe_sse(self, topic: str, handle_signals: bool = False) -> Iterator[str]:
+    @contextmanager
+    def subscribe_sse(self, topic: str) -> Iterator[str]:
         """
         Subscribe to a topic using Server-Sent Events
         Returns an iterator that yields message payloads as they are published
+        Will close the underlying HTTP connection when the context manager exits
 
-        If handle_signals=True,
-          will install a signal handler to close the connection on SIGINT and SIGTERM
+        Usage:
+
+        # This will run indefinitely
+        with pubsub_service.subscribe_sse("my_topic") as messages:
+             for message in messages:
+                    handle(message)
+
+        # This will run in the background, exiting after one minute
+        with pubsub_service.subscribe_sse("my_topic") as messages:
+            def run():
+                for message in messages:
+                    handle(message)
+            threading.Thread(target=run).start()
+
+            sleep(60)
         """
-        response = requests.get(
-            f"{self.base_url}/subscribe/sse/{self._fully_qualified_topic(topic)}",
-            stream=True,
-        )
-        if handle_signals:
-            signal.signal(signal.SIGINT, lambda signum, frame: response.close())
-            signal.signal(signal.SIGTERM, lambda signum, frame: response.close())
-        for line in response.iter_lines():
-            if line and line.startswith(b"data:"):
-                payload = line[5:].decode("utf-8").strip()
-                if payload:
-                    yield json.loads(payload)
+        open_connections = []
+        running = True
+
+        def msgs():
+            delay = 1
+            while running:
+                try:
+                    response = requests.get(
+                        f"{self.base_url}/subscribe/sse/{self._fully_qualified_topic(topic)}",
+                        stream=True,
+                    )
+                    open_connections.append(response)
+                    delay = 1
+                    for line in response.iter_lines():
+                        if line and line.startswith(b"data:"):
+                            payload = line[5:].decode("utf-8").strip()
+                            if payload:
+                                yield json.loads(payload)
+                except requests.exceptions.ConnectionError:
+                    logging.warning(
+                        "Unable to establish server connection at %s. Sleeping for %ss",
+                        self.base_url,
+                        delay,
+                    )
+                    try:
+                        open_connections.pop().close()
+                    except Exception:
+                        pass
+                    # Possible misconfiguration. Back off exponentially
+                    sleep(delay)
+                    delay = min(delay * 2, 60)
+                except requests.exceptions.RequestException:
+                    logging.warning("Server at %s closed SSE connection", self.base_url)
+                    try:
+                        open_connections.pop().close()
+                    except Exception:
+                        pass
+                    # Service may have redeployed. Try to reestablish connection quickly
+                    sleep(1)
+
+        try:
+            yield msgs()
+        finally:
+            running = False
+            for conn in open_connections:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
     def publish(self, topic: str, payload: Dict[str, Any]):
         """
