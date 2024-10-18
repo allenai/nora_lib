@@ -127,7 +127,7 @@ class StepProgressEvent:
 
     def to_event(self) -> Event:
         return Event(
-            type=EventType.STEP.value,
+            type=EventType.STEP_PROGRESS.value,
             actor_id=self.actor_id,
             timestamp=datetime.now(),
             data=self.step_progress.model_dump(),

@@ -120,8 +120,8 @@ class Event(BaseModel):
 class EventType(Enum):
     """Enumeration of event types"""
 
-    STEP = "step"
     STEP_COST = "step_cost"
+    STEP_PROGRESS = "step_progress"
 
 
 class Thread(BaseModel):
