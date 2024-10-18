@@ -20,6 +20,7 @@ class RunState(str, Enum):
 
 
 class StepProgress(BaseModel):
+    """Data class for step progress. This goes into the `data` field in `Event`."""
     # A short message, e.g. "searching for $query". Recommend < 100 chars.
     short_desc: str
     # Detailed message.
