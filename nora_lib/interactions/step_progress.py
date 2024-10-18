@@ -71,7 +71,7 @@ class StepProgressEvent:
     ...
 
     # Finish the step
-    find_papers_progress.finish(is_success=False, error_msg="Something went wrong")
+    find_papers_progress.finish(is_success=False, error_message="Something went wrong")
     """
 
     def __init__(
