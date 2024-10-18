@@ -56,12 +56,14 @@ class StepProgressEvent:
         StepProgress(short_desc="Find papers"),
         interactions_service
     )
-    #
+
+    # Do something
+    ...
 
     # Start the step
     find_papers_progress.start()
 
-    # Do actual work
+    # Do more things
     ...
     count_citation_progress = find_papers_progress.create_child_step(short_desc="Count citations")
     ...
