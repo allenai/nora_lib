@@ -10,6 +10,7 @@ from requests.auth import AuthBase
 from aws_requests_auth.aws_auth import AWSRequestsAuth
 from typing import Dict, Any
 
+from interactions.step_progress import StepProgressEvent
 from nora_lib.interactions.models import (
     AnnotationBatch,
     StepCost,
@@ -398,6 +399,19 @@ class InteractionsService:
             if e.response.status_code == 404:
                 logging.warning(
                     f"Cannot find message id {step_cost.message_id} to attach cost report to."
+                )
+                return None
+            else:
+                raise e
+
+    def report_step_progress(self, step: StepProgressEvent):
+        """Save a step to the Interactions Store"""
+        try:
+            return self.save_event(step.to_event())
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                logging.warning(
+                    f"Cannot find message id {step.message_id} to attach step progress to."
                 )
                 return None
             else:

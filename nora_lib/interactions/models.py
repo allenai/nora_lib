@@ -3,7 +3,8 @@ Model for interactions to be sent to the interactions service.
 """
 
 import json
-from datetime import datetime
+import uuid
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 from uuid import UUID
@@ -119,6 +120,7 @@ class Event(BaseModel):
 class EventType(Enum):
     """Enumeration of event types"""
 
+    STEP = "step"
     STEP_COST = "step_cost"
 
 
