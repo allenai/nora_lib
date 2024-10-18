@@ -1,13 +1,15 @@
+import logging
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 from uuid import UUID
 
+import requests
 from pydantic import BaseModel
 
-from interactions.interactions_service import InteractionsService
-from interactions.models import Event, EventType
+from nora_lib.interactions.interactions_service import InteractionsService
+from nora_lib.interactions.models import Event, EventType
 
 
 class RunState(str, Enum):
@@ -21,6 +23,7 @@ class RunState(str, Enum):
 
 class StepProgress(BaseModel):
     """Data class for step progress. This goes into the `data` field in `Event`."""
+
     # A short message, e.g. "searching for $query". Recommend < 100 chars.
     short_desc: str
     # Detailed message.
@@ -30,28 +33,28 @@ class StepProgress(BaseModel):
     # Enum of possible states.
     run_state: RunState = RunState.CREATED
     # When this step was defined/created.
-    created: datetime = datetime.now(timezone.utc)
+    created_at: datetime = datetime.now(timezone.utc)
     # Inner steps can be constituent to some outer step, effectively a tree.
     parent_step_id: Optional[UUID] = None
     # Populated if this step is due to an async task.
     task_id: Optional[str] = None
     # When this step started running.
-    started: Optional[datetime] = None
+    started_at: Optional[datetime] = None
     # Estimated finish time, if available.
     finish_est: Optional[datetime] = None
     # When this step stopped running, whether that was due to success or failure.
-    finished: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
     # Optional error message to diagnose failure.
     error_message: Optional[str] = None
 
 
-class StepProgressEvent:
+class StepProgressReporter:
     """
     Wrapper around StepProgress to add event metadata and report to interactions service
 
     Usage:
     # Create/define a step
-    find_papers_progress = StepProgressEvent(
+    find_papers_progress = StepProgressReporter(
         actor_id,
         message_id,
         StepProgress(short_desc="Find papers"),
@@ -91,31 +94,29 @@ class StepProgressEvent:
 
         # Report step creation
         self.step_progress.run_state = RunState.CREATED
-        self.step_progress.created = datetime.now(timezone.utc)
-        self.interactions_service.report_step_progress(self)
+        self.step_progress.created_at = datetime.now(timezone.utc)
+        self._report_progress()
 
     def start(self):
         """Start a step"""
-        self.step_progress.started = datetime.now(timezone.utc)
+        self.step_progress.started_at = datetime.now(timezone.utc)
         self.step_progress.run_state = RunState.RUNNING
-        self.interactions_service.report_step_progress(self)
+        self._report_progress()
 
-    def finish(
-        self, is_success: bool, error_message: Optional[str] = None
-    ):
+    def finish(self, is_success: bool, error_message: Optional[str] = None):
         """Finish a step whether it was successful or not"""
-        self.step_progress.finished = datetime.now(timezone.utc)
+        self.step_progress.finished_at = datetime.now(timezone.utc)
         self.step_progress.run_state = (
             RunState.SUCCEEDED if is_success else RunState.FAILED
         )
         self.step_progress.error_message = error_message if error_message else None
-        self.interactions_service.report_step_progress(self)
+        self._report_progress()
 
     def create_child_step(
         self, short_desc: str, long_desc: Optional[str] = None
-    ) -> "StepProgressEvent":
+    ) -> "StepProgressReporter":
         """Create a child step"""
-        child_step_progress_event = StepProgressEvent(
+        child_step_progress_event = StepProgressReporter(
             actor_id=self.actor_id,
             message_id=self.message_id,
             step_progress=StepProgress(
@@ -125,10 +126,23 @@ class StepProgressEvent:
             ),
             interactions_service=self.interactions_service,
         )
-        self.interactions_service.report_step_progress(self)
+        self._report_progress()
         return child_step_progress_event
 
-    def to_event(self) -> Event:
+    def _report_progress(self) -> Optional[str]:
+        """Report a step progress to the Interactions Store. Returns the event id if successful."""
+        try:
+            return self.interactions_service.save_event(self._to_event())
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                logging.warning(
+                    f"Cannot find message id {self.message_id} to attach step progress to."
+                )
+                return None
+            else:
+                raise e
+
+    def _to_event(self) -> Event:
         return Event(
             type=EventType.STEP_PROGRESS.value,
             actor_id=self.actor_id,

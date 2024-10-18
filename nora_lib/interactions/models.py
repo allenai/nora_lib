@@ -3,8 +3,7 @@ Model for interactions to be sent to the interactions service.
 """
 
 import json
-import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 from uuid import UUID
