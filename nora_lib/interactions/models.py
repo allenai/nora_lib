@@ -40,7 +40,7 @@ class Message(BaseModel):
     message_id: str
     actor_id: UUID
     text: str
-    thread_id: Optional[str]
+    thread_id: str
     channel_id: str
     surface: Surface
     ts: datetime
@@ -120,6 +120,7 @@ class EventType(Enum):
     """Enumeration of event types"""
 
     STEP_COST = "step_cost"
+    STEP_PROGRESS = "step_progress"
 
 
 class Thread(BaseModel):
