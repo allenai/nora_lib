@@ -13,7 +13,8 @@ add_failure () {
 make build-image || add_failure "image build" "make build-image"
 make check-format || add_failure "formatting" "make format"
 make mypy || add_failure "type checking" "make mypy"
-make pytest || add_failure "unit tests" "make pytest"
+make test || add_failure "unit tests" "make test"
+ci/run.sh || add_failure "integration tests" "ci/run.sh"
 
 for failure_reason in "${FAILURE_REASONS[@]}"
 do

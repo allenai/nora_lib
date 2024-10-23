@@ -1,0 +1,30 @@
+version: '3'
+services:
+  interaction_service:
+    image: 896129387501.dkr.ecr.us-west-2.amazonaws.com/nora/interaction-service
+    environment:
+      DB_HOST: 'interaction_db'
+      DB_PASSWORD: 'nora'
+      DB_PORT: 15432
+      DB_USERNAME: 'nora'
+      ENV: 'custom'
+      INTERACTION_SERVICE_PORT: 9080
+    ports: [ '9080:9080' ]
+    networks:
+      - nora-lib-network
+    depends_on:
+      - interaction_db
+
+  interaction_db:
+    image: 896129387501.dkr.ecr.us-west-2.amazonaws.com/nora/interaction-db
+    environment:
+      POSTGRES_DB: 'nora_interaction'
+      POSTGRES_PASSWORD: 'nora'
+      POSTGRES_USER: 'nora'
+    command: -p 15432
+    ports: [ '15432:15432' ]
+    networks:
+      - nora-lib-network
+networks:
+  nora-lib-network:
+    name: nora-lib-network
