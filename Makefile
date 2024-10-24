@@ -20,6 +20,7 @@ mypy: build-image
 test: build-image
 	$(DOCKER_RUN) python -m pytest tests/unit
 
+# Don't run directly. Run `ci/run.sh` instead.
 test-it: build-image
 	$(DOCKER_RUN_WITH_NETWORK) python -m pytest tests/integration
 
