@@ -126,13 +126,30 @@ class StepProgressReporter:
 
     def start(self):
         """Start a step"""
-        self.step_progress.started_at = datetime.now(timezone.utc)
-        self.step_progress.run_state = RunState.RUNNING
-        self._report_progress()
+        if self.step_progress.run_state in [
+            RunState.RUNNING,
+            RunState.SUCCEEDED,
+            RunState.FAILED,
+        ]:
+            logging.warning(
+                f"Trying to start an already started/finished step. "
+                f"Doing nothing instead. Step id: {self.step_progress.step_id}. "
+                f"Run state: {self.step_progress.run_state}."
+            )
+        else:
+            self.step_progress.started_at = datetime.now(timezone.utc)
+            self.step_progress.run_state = RunState.RUNNING
+            self._report_progress()
 
     def finish(self, is_success: bool, error_message: Optional[str] = None):
         """Finish a step whether it was successful or not"""
-        if self.step_progress.run_state != RunState.RUNNING:
+        if self.step_progress.run_state in [RunState.SUCCEEDED, RunState.FAILED]:
+            logging.warning(
+                f"Trying to finish an already finished step. "
+                f"Doing nothing instead. Step id: {self.step_progress.step_id}. "
+                f"Run state: {self.step_progress.run_state}."
+            )
+        elif self.step_progress.run_state != RunState.RUNNING:
             logging.warning(
                 f"Trying to finish a step that has not been started. "
                 f"Doing nothing instead. Step id: {self.step_progress.step_id}"

@@ -1,4 +1,3 @@
-import os
 import unittest
 
 from nora_lib.interactions.interactions_service import InteractionsService
@@ -37,8 +36,7 @@ class TestInteractionsService(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.iservice = InteractionsService(
-            os.getenv("INTERACTION_STORE_URL", "http://interaction_service:9080"),
-            token="test",
+            "http://interaction_service:9080", token="test"
         )
 
     def test_save_message(self):
