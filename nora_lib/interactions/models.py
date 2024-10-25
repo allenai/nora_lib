@@ -261,6 +261,18 @@ class LLMTokenBreakdown(CostDetail):
     completion_tokens: int
 
 
+class LangSmithRunTree(CostDetail):
+    """LangSmith RunTree"""
+
+    # Subset of fields given by langsmith-sdk
+    # which allow future lookup of run/trace details.
+    run_name: str
+    run_id: UUID
+    session_name: str  # Alias: project_name
+    session_id: Optional[UUID] = None  # Alias: project_id
+    trace_id: UUID
+
+
 class ServiceCost(BaseModel):
     """Cost of servicing a request by an agent"""
 
