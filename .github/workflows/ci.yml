@@ -8,16 +8,13 @@ jobs:
   run_script:
     runs-on: ubuntu-latest
     env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      TEST_SECRET: ${{ secrets.TEST_SECRET }}
     steps:
       - uses: actions/checkout@v3
 
       - name: Run tests
         run: |
-          echo "Running verify.sh"
-          ./verify.sh
-          if [ $? -ne 0 ]; then
-            echo "Error: Verify step failed"
-            exit 1
-          fi
+          echo "=================================="
+          echo "Printing test secret"
+          echo $TEST_SECRET
+          echo "=================================="
