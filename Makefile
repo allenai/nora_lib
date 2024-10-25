@@ -20,6 +20,10 @@ mypy: build-image
 test: build-image
 	$(DOCKER_RUN) python -m pytest tests/unit
 
+ecr-login:
+	aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 896129387501.dkr.ecr.us-west-2.amazonaws.com
+	aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+
 # Don't run directly. Run `ci/run.sh` instead.
 test-it: build-image
 	$(DOCKER_RUN_WITH_NETWORK) python -m pytest tests/integration
