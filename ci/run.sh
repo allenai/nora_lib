@@ -10,7 +10,7 @@ cleanup() {
 
   set +e
   echo 'Attempting to cleanup...'
-  docker-compose -f ci/compose.yaml down
+  docker compose -f ci/compose.yaml down
   echo 'Cleaned house.'
 }
 
