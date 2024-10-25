@@ -17,6 +17,7 @@ cleanup() {
 # This trap will run if this script exits for any reason, error or not.
 trap cleanup 0
 
+make ecr-login
 docker compose -f ci/compose.yaml up -d
 
 # Run tests
