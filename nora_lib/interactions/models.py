@@ -265,16 +265,16 @@ class LangChainRun(CostDetail):
     """LangChain Run"""
 
     # Subset of run fields which allow future lookup of run details.
-    id: UUID
+    run_id: UUID
+    run_name: Optional[str] = None
     trace_id: Optional[UUID] = None
-    name: Optional[str] = None
     session_name: Optional[str] = None  # Alias: project_name
     session_id: Optional[UUID] = None  # Alias: project_id
 
     # Serialize the UUIDs as strings
-    @field_serializer("id")
-    def serialize_id(self, id: UUID):
-        return str(id)
+    @field_serializer("run_id")
+    def serialize_id(self, run_id: UUID):
+        return str(run_id)
 
     @field_serializer("trace_id")
     def serialize_trace_id(self, trace_id: UUID):
