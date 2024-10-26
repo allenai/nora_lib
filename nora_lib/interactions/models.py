@@ -271,6 +271,19 @@ class LangChainRun(CostDetail):
     session_name: Optional[str] = None  # Alias: project_name
     session_id: Optional[UUID] = None  # Alias: project_id
 
+    # Serialize the UUIDs as strings
+    @field_serializer("id")
+    def serialize_id(self, id: UUID):
+        return str(id)
+
+    @field_serializer("trace_id")
+    def serialize_trace_id(self, trace_id: UUID):
+        return str(trace_id)
+
+    @field_serializer("session_id")
+    def serialize_session_id(self, session_id: UUID):
+        return str(session_id)
+
 
 class ServiceCost(BaseModel):
     """Cost of servicing a request by an agent"""
