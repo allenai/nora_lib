@@ -1,7 +1,8 @@
 import unittest
+from unittest.mock import MagicMock, ANY
 from uuid import uuid4
 
-from nora_lib.pubsub import PubsubService, NoOpPubsubService
+from nora_lib.pubsub import PubsubService
 
 from nora_lib.interactions.step_progress import (
     StepProgressReporter,
@@ -50,71 +51,101 @@ class TestStepProgressReporter(unittest.TestCase):
         cls.iservice = InteractionsService(
             "http://interaction_service:9080", token="test"
         )
-        cls.pubsub_service = NoOpPubsubService("test", "test")
 
     def test_create_start_finish_success(self):
-        spr = _spr(self.iservice, self.pubsub_service)
+        mock_pubsub_service = MagicMock()
+        spr = _spr(self.iservice, mock_pubsub_service)
         self.assertEqual(spr.step_progress.run_state, RunState.CREATED)
         self.assertIsNotNone(spr.step_progress.created_at)
+        mock_pubsub_service.publish.assert_called_once_with(
+            topic=f"step_progress:{spr.thread_id}", payload=ANY
+        )
 
-        spr.start()
+        start_event_id = spr.start()
         self.assertEqual(spr.step_progress.run_state, RunState.RUNNING)
+        self.assertEqual(
+            mock_pubsub_service.publish.call_args[1]["payload"]["event_id"],
+            start_event_id,
+        )
 
         self.assertIsNone(spr.step_progress.finished_at)
-        spr.finish(is_success=True)
+        finish_event_id = spr.finish(is_success=True)
         self.assertEqual(spr.step_progress.run_state, RunState.SUCCEEDED)
         self.assertIsNotNone(spr.step_progress.finished_at)
+        self.assertEqual(
+            mock_pubsub_service.publish.call_args[1]["payload"]["event_id"],
+            finish_event_id,
+        )
 
     def test_finish_after_finish(self):
-        spr = _spr(self.iservice, self.pubsub_service)
+        mock_pubsub_service = MagicMock()
+        spr = _spr(self.iservice, mock_pubsub_service)
         spr.start()
         spr.finish(is_success=False, error_message="error")
         failed_at = spr.step_progress.finished_at
         self.assertEqual(spr.step_progress.run_state, RunState.FAILED)
+        publish_call_count = mock_pubsub_service.publish.call_count
 
         # Finish again, should do nothing
         spr.finish(is_success=True)
         self.assertEqual(spr.step_progress.run_state, RunState.FAILED)
         self.assertEqual(spr.step_progress.finished_at, failed_at)
+        # Don't publish to Pubsub. Call count remains the same
+        self.assertEqual(mock_pubsub_service.publish.call_count, publish_call_count)
 
     def test_finish_before_start(self):
-        spr = _spr(self.iservice, self.pubsub_service)
+        mock_pubsub_service = MagicMock()
+        spr = _spr(self.iservice, mock_pubsub_service)
+        publish_call_count = mock_pubsub_service.publish.call_count
+
         spr.finish(is_success=True)
         self.assertEqual(spr.step_progress.run_state, RunState.CREATED)
         self.assertIsNone(spr.step_progress.finished_at)
+        # Don't publish to Pubsub. Call count remains the same
+        self.assertEqual(mock_pubsub_service.publish.call_count, publish_call_count)
 
     def test_start_after_start(self):
-        spr = _spr(self.iservice, self.pubsub_service)
+        mock_pubsub_service = MagicMock()
+        spr = _spr(self.iservice, mock_pubsub_service)
         spr.start()
         started_at = spr.step_progress.started_at
         self.assertIsNotNone(started_at)
+        publish_call_count = mock_pubsub_service.publish.call_count
 
         # Start again, should do nothing
         spr.start()
         self.assertEqual(spr.step_progress.run_state, RunState.RUNNING)
         self.assertEqual(spr.step_progress.started_at, started_at)
+        # Don't publish to Pubsub. Call count remains the same
+        self.assertEqual(mock_pubsub_service.publish.call_count, publish_call_count)
 
     def test_start_after_finish(self):
-        spr = _spr(self.iservice, self.pubsub_service)
+        mock_pubsub_service = MagicMock()
+        spr = _spr(self.iservice, mock_pubsub_service)
         spr.start()
         spr.finish(is_success=True)
         finished_at = spr.step_progress.finished_at
         self.assertEqual(spr.step_progress.run_state, RunState.SUCCEEDED)
+        publish_call_count = mock_pubsub_service.publish.call_count
 
         # Start again, should do nothing
         spr.start()
         self.assertEqual(spr.step_progress.run_state, RunState.SUCCEEDED)
         self.assertEqual(spr.step_progress.finished_at, finished_at)
+        # Don't publish to Pubsub. Call count remains the same
+        self.assertEqual(mock_pubsub_service.publish.call_count, publish_call_count)
 
     def test_create_child_step(self):
-        spr = _spr(self.iservice, self.pubsub_service)
+        mock_pubsub_service = MagicMock()
+        spr = _spr(self.iservice, mock_pubsub_service)
         child_spr = spr.create_child_step(short_desc="child step")
         self.assertEqual(
             child_spr.step_progress.parent_step_id, spr.step_progress.step_id
         )
 
     def test_with_context_management_success(self):
-        with _spr(self.iservice, self.pubsub_service) as spr:
+        mock_pubsub_service = MagicMock()
+        with _spr(self.iservice, mock_pubsub_service) as spr:
             spr.start()
 
         # Should finish on its own
@@ -122,7 +153,8 @@ class TestStepProgressReporter(unittest.TestCase):
 
     def test_with_context_management_catch_exception(self):
         error_message = "whoops"
-        with _spr(self.iservice, self.pubsub_service) as spr:
+        mock_pubsub_service = MagicMock()
+        with _spr(self.iservice, mock_pubsub_service) as spr:
             spr.start()
             raise RuntimeError(error_message)
 

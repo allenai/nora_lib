@@ -132,7 +132,7 @@ class StepProgressReporter:
         self.finish(is_success=is_success, error_message=str(value))
         return True
 
-    def start(self):
+    def start(self) -> Optional[str]:
         """Start a step"""
         if self.step_progress.run_state in [
             RunState.RUNNING,
@@ -144,14 +144,18 @@ class StepProgressReporter:
                 f"Doing nothing instead. Step id: {self.step_progress.step_id}. "
                 f"Run state: {self.step_progress.run_state}."
             )
+            return None
         else:
             self.step_progress.started_at = datetime.now(timezone.utc)
             self.step_progress.run_state = RunState.RUNNING
             event_id_opt = self._save_progress_to_istore()
             if event_id_opt:
                 self._publish_to_topic(event_id_opt, self.step_progress.started_at)
+            return event_id_opt
 
-    def finish(self, is_success: bool, error_message: Optional[str] = None):
+    def finish(
+        self, is_success: bool, error_message: Optional[str] = None
+    ) -> Optional[str]:
         """Finish a step whether it was successful or not"""
         if self.step_progress.run_state in [RunState.SUCCEEDED, RunState.FAILED]:
             logging.warning(
@@ -159,11 +163,13 @@ class StepProgressReporter:
                 f"Doing nothing instead. Step id: {self.step_progress.step_id}. "
                 f"Run state: {self.step_progress.run_state}."
             )
+            return None
         elif self.step_progress.run_state != RunState.RUNNING:
             logging.warning(
                 f"Trying to finish a step that has not been started. "
                 f"Doing nothing instead. Step id: {self.step_progress.step_id}"
             )
+            return None
         else:
             self.step_progress.finished_at = datetime.now(timezone.utc)
             self.step_progress.run_state = (
@@ -173,6 +179,7 @@ class StepProgressReporter:
             event_id_opt = self._save_progress_to_istore()
             if event_id_opt:
                 self._publish_to_topic(event_id_opt, self.step_progress.finished_at)
+            return event_id_opt
 
     def create_child_step(
         self, short_desc: str, long_desc: Optional[str] = None
