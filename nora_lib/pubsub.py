@@ -138,3 +138,24 @@ class PubsubService:
 class PublishedEvent(BaseModel):
     topic: str
     payload: Dict[str, Any]
+
+
+class NoOpPubsubService(PubsubService):
+    """A PubsubService that does nothing for testing purposes"""
+
+    def subscribe_webhook(self, topic: str, url: str):
+        pass
+
+    def unsubscribe_webhook(self, topic: str, url: str):
+        pass
+
+    @contextmanager
+    def subscribe_sse(self, topic: str) -> Iterator[str]:
+        return iter(())
+
+    def publish(self, topic: str, payload: Dict[str, Any]):
+        pass
+
+    @staticmethod
+    def from_env() -> "NoOpPubsubService":
+        return NoOpPubsubService(base_url="", namespace="")

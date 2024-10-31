@@ -217,5 +217,5 @@ class StepProgressReporter:
     def _publish_to_topic(self, event_id: str, timestamp: datetime):
         self.pubsub_service.publish(
             topic=f"step_progress:{self.thread_id}",
-            payload={"event_id": event_id, "timestamp": timestamp},
+            payload={"event_id": event_id, "timestamp": timestamp.isoformat()},
         )

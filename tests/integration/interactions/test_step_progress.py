@@ -1,7 +1,7 @@
 import unittest
 from uuid import uuid4
 
-from nora_lib.pubsub import PubsubService
+from nora_lib.pubsub import PubsubService, NoOpPubsubService
 
 from nora_lib.interactions.step_progress import (
     StepProgressReporter,
@@ -50,7 +50,7 @@ class TestStepProgressReporter(unittest.TestCase):
         cls.iservice = InteractionsService(
             "http://interaction_service:9080", token="test"
         )
-        cls.pubsub_service = PubsubService("test", "test")
+        cls.pubsub_service = NoOpPubsubService("test", "test")
 
     def test_create_start_finish_success(self):
         spr = _spr(self.iservice, self.pubsub_service)
