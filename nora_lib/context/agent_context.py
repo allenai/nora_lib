@@ -1,5 +1,7 @@
+from typing import Dict, Any
+
 from nora_lib.interactions.models import Surface
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class MessageAgentContext(BaseModel):
@@ -24,10 +26,11 @@ class PubsubAgentContext(BaseModel):
 
 class ToolConfigAgentContext(BaseModel):
     """
-    The name of the tool config being used by the handler (dev, prod, demo, etc.)
+    The name of the tool config being used by the handler (handler-best-quality, low-cost, etc.)
     """
 
-    env: str
+    config_name: str
+    overrides: Dict[str, Any] = Field(default_factory=dict)
 
 
 class AgentContext(BaseModel):
