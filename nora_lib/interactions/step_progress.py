@@ -122,7 +122,7 @@ class StepProgressReporter:
             self.step_progress.created_at = event.timestamp
 
             # Publish to topic
-            self._publish_to_topic(self.step_progress.created_at)
+            self._publish_to_topic(event_id_opt, self.step_progress.created_at)
 
     def __enter__(self):
         return self
@@ -147,8 +147,9 @@ class StepProgressReporter:
         else:
             self.step_progress.started_at = datetime.now(timezone.utc)
             self.step_progress.run_state = RunState.RUNNING
-            self._save_progress_to_istore()
-            self._publish_to_topic(self.step_progress.started_at)
+            event_id_opt = self._save_progress_to_istore()
+            if event_id_opt:
+                self._publish_to_topic(event_id_opt, self.step_progress.started_at)
 
     def finish(self, is_success: bool, error_message: Optional[str] = None):
         """Finish a step whether it was successful or not"""
@@ -169,8 +170,9 @@ class StepProgressReporter:
                 RunState.SUCCEEDED if is_success else RunState.FAILED
             )
             self.step_progress.error_message = error_message if error_message else None
-            self._save_progress_to_istore()
-            self._publish_to_topic(self.step_progress.finished_at)
+            event_id_opt = self._save_progress_to_istore()
+            if event_id_opt:
+                self._publish_to_topic(event_id_opt, self.step_progress.finished_at)
 
     def create_child_step(
         self, short_desc: str, long_desc: Optional[str] = None
@@ -212,9 +214,8 @@ class StepProgressReporter:
             message_id=self.message_id,
         )
 
-    def _publish_to_topic(self, timestamp: datetime):
-        if self.step_progress.task_id:
-            self.pubsub_service.publish(
-                topic=f"step_progress:{self.thread_id}",
-                payload={"task_id": self.step_progress.task_id, "timestamp": timestamp},
-            )
+    def _publish_to_topic(self, event_id: str, timestamp: datetime):
+        self.pubsub_service.publish(
+            topic=f"step_progress:{self.thread_id}",
+            payload={"event_id": event_id, "timestamp": timestamp},
+        )
