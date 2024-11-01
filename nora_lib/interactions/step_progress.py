@@ -145,7 +145,7 @@ class StepProgressReporter:
                 f"Run state: {self.step_progress.run_state}."
             )
             return None
-        
+
         self.step_progress.started_at = datetime.now(timezone.utc)
         self.step_progress.run_state = RunState.RUNNING
         event_id_opt = self._save_progress_to_istore()
