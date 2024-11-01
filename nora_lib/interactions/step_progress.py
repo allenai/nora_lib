@@ -6,6 +6,7 @@ from typing import Optional
 from uuid import UUID
 
 import requests
+from nora_lib.pubsub import PubsubService
 from pydantic import BaseModel
 
 from nora_lib.interactions.serializers import UuidWithSerializer, DatetimeWithSerializer
@@ -99,22 +100,29 @@ class StepProgressReporter:
         self,
         actor_id: UUID,
         message_id: str,
+        thread_id: str,
         step_progress: StepProgress,
         interactions_service: InteractionsService,
+        pubsub_service: PubsubService,
     ):
         self.actor_id = actor_id
         self.message_id = message_id
+        self.thread_id = thread_id
         self.step_progress = step_progress
         self.interactions_service = interactions_service
+        self.pubsub_service = pubsub_service
 
         # Report step creation
         self.step_progress.run_state = RunState.CREATED
-        event_id_opt = self._report_progress()
+        event_id_opt = self._save_progress_to_istore()
 
         # Use DB timestamp for created_at
         if event_id_opt:
             event = self.interactions_service.get_event(event_id_opt)
             self.step_progress.created_at = event.timestamp
+
+            # Publish to topic
+            self._publish_to_topic(event_id_opt, self.step_progress.created_at)
 
     def __enter__(self):
         return self
@@ -124,7 +132,7 @@ class StepProgressReporter:
         self.finish(is_success=is_success, error_message=str(value))
         return True
 
-    def start(self):
+    def start(self) -> Optional[str]:
         """Start a step"""
         if self.step_progress.run_state in [
             RunState.RUNNING,
@@ -136,12 +144,18 @@ class StepProgressReporter:
                 f"Doing nothing instead. Step id: {self.step_progress.step_id}. "
                 f"Run state: {self.step_progress.run_state}."
             )
-        else:
-            self.step_progress.started_at = datetime.now(timezone.utc)
-            self.step_progress.run_state = RunState.RUNNING
-            self._report_progress()
+            return None
 
-    def finish(self, is_success: bool, error_message: Optional[str] = None):
+        self.step_progress.started_at = datetime.now(timezone.utc)
+        self.step_progress.run_state = RunState.RUNNING
+        event_id_opt = self._save_progress_to_istore()
+        if event_id_opt:
+            self._publish_to_topic(event_id_opt, self.step_progress.started_at)
+        return event_id_opt
+
+    def finish(
+        self, is_success: bool, error_message: Optional[str] = None
+    ) -> Optional[str]:
         """Finish a step whether it was successful or not"""
         if self.step_progress.run_state in [RunState.SUCCEEDED, RunState.FAILED]:
             logging.warning(
@@ -149,18 +163,23 @@ class StepProgressReporter:
                 f"Doing nothing instead. Step id: {self.step_progress.step_id}. "
                 f"Run state: {self.step_progress.run_state}."
             )
+            return None
         elif self.step_progress.run_state != RunState.RUNNING:
             logging.warning(
                 f"Trying to finish a step that has not been started. "
                 f"Doing nothing instead. Step id: {self.step_progress.step_id}"
             )
+            return None
         else:
             self.step_progress.finished_at = datetime.now(timezone.utc)
             self.step_progress.run_state = (
                 RunState.SUCCEEDED if is_success else RunState.FAILED
             )
             self.step_progress.error_message = error_message if error_message else None
-            self._report_progress()
+            event_id_opt = self._save_progress_to_istore()
+            if event_id_opt:
+                self._publish_to_topic(event_id_opt, self.step_progress.finished_at)
+            return event_id_opt
 
     def create_child_step(
         self, short_desc: str, long_desc: Optional[str] = None
@@ -169,17 +188,19 @@ class StepProgressReporter:
         child_step_progress_event = StepProgressReporter(
             actor_id=self.actor_id,
             message_id=self.message_id,
+            thread_id=self.thread_id,
             step_progress=StepProgress(
                 parent_step_id=self.step_progress.step_id,
                 short_desc=short_desc,
                 long_desc=long_desc,
             ),
             interactions_service=self.interactions_service,
+            pubsub_service=self.pubsub_service,
         )
         return child_step_progress_event
 
-    def _report_progress(self) -> Optional[str]:
-        """Report a step progress to the Interactions Store. Returns the event id if successful."""
+    def _save_progress_to_istore(self) -> Optional[str]:
+        """Save a step progress to the Interactions Store. Returns the event id if successful."""
         try:
             return self.interactions_service.save_event(self._to_event())
         except requests.exceptions.HTTPError as e:
@@ -198,4 +219,10 @@ class StepProgressReporter:
             timestamp=datetime.now(),
             data=self.step_progress.model_dump(),
             message_id=self.message_id,
+        )
+
+    def _publish_to_topic(self, event_id: str, timestamp: datetime):
+        self.pubsub_service.publish(
+            topic=f"step_progress:{self.thread_id}",
+            payload={"event_id": event_id, "timestamp": timestamp.isoformat()},
         )
