@@ -139,6 +139,7 @@ class TestStepProgressReporter(unittest.TestCase):
         mock_pubsub_service = MagicMock()
         spr = _spr(self.iservice, mock_pubsub_service)
         child_spr = spr.create_child_step(short_desc="child step")
+        self.assertNotEqual(child_spr.step_progress.step_id, spr.step_progress.step_id)
         self.assertEqual(
             child_spr.step_progress.parent_step_id, spr.step_progress.step_id
         )
