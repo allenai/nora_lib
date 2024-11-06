@@ -7,7 +7,7 @@ from uuid import UUID
 
 import requests
 from nora_lib.pubsub import PubsubService
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from nora_lib.interactions.serializers import UuidWithSerializer, DatetimeWithSerializer
 from nora_lib.interactions.interactions_service import InteractionsService
@@ -31,7 +31,7 @@ class StepProgress(BaseModel):
     # Detailed message.
     long_desc: Optional[str] = None
     # Updates on the same unit of work have the same step_id.
-    step_id: UuidWithSerializer = uuid.uuid4()
+    step_id: UuidWithSerializer = Field(default_factory=uuid.uuid4)
     # Inner steps can be constituent to some outer step, effectively a tree.
     parent_step_id: Optional[UuidWithSerializer] = None
     # Populated if this step is due to an async task.
