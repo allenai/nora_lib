@@ -302,6 +302,8 @@ class ServiceCost(BaseModel):
     )
     tool_call_id: Optional[str] = None
     details: List[CostDetail] = []
+    env: Optional[str] = None
+    git_sha: Optional[str] = None
 
 
 class StepCost(BaseModel):
