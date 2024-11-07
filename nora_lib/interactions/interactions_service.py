@@ -467,42 +467,18 @@ class InteractionsService:
     @staticmethod
     def from_env() -> "InteractionsService":
         """Load the configuration based on the environment."""
-        use_api_gw = (
-            os.getenv("INTERACTION_STORE_VIA_API_GW", "false").lower() == "true"
+        url = os.getenv(
+            "INTERACTION_STORE_URL",
+            "https://nora-retrieval-public.prod.s2.allenai.org",
         )
-        if use_api_gw:
-            return InteractionsService.via_api_gw()
-        else:
-            url = os.getenv(
-                "INTERACTION_STORE_URL",
-                "https://s2ub.prod.s2.allenai.org/service/noraretrieval",
-            )
-            token = os.getenv(
-                "INTERACTION_STORE_TOKEN",
-                InteractionsService.fetch_bearer_token(
-                    "nora/prod/interaction-bearer-token"
-                ),
-            )
+        token = os.getenv(
+            "INTERACTION_STORE_TOKEN",
+            InteractionsService.fetch_bearer_token(
+                "nora/prod/interaction-bearer-token"
+            ),
+        )
 
         return InteractionsService(base_url=url, token=token)
-
-    @staticmethod
-    def via_api_gw() -> "InteractionsService":
-        credentials = boto3.Session().get_credentials()
-        region = "us-west-2"
-        service = "execute-api"
-        host = f"95e441vq07.{service}.{region}.amazonaws.com"
-        url = f"https://{host}/prod/nora-interactions"
-
-        auth = AWSRequestsAuth(
-            aws_access_key=credentials.access_key,
-            aws_secret_access_key=credentials.secret_key,
-            aws_token=credentials.token,
-            aws_host=host,
-            aws_region="us-west-2",
-            aws_service="execute-api",
-        )
-        return InteractionsService(base_url=url, auth=auth)
 
 
 class BearerAuth(requests.auth.AuthBase):
