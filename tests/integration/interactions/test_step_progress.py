@@ -55,6 +55,7 @@ class TestStepProgressReporter(unittest.TestCase):
     def test_create_start_finish_success(self):
         mock_pubsub_service = MagicMock()
         spr = _spr(self.iservice, mock_pubsub_service)
+        spr.create()
         self.assertEqual(spr.step_progress.run_state, RunState.CREATED)
         self.assertIsNotNone(spr.step_progress.created_at)
         mock_pubsub_service.publish.assert_called_once_with(
@@ -80,7 +81,7 @@ class TestStepProgressReporter(unittest.TestCase):
     def test_finish_after_finish(self):
         mock_pubsub_service = MagicMock()
         spr = _spr(self.iservice, mock_pubsub_service)
-        spr.start()
+        spr.create_and_start()
         spr.finish(is_success=False, error_message="error")
         failed_at = spr.step_progress.finished_at
         self.assertEqual(spr.step_progress.run_state, RunState.FAILED)
@@ -107,7 +108,7 @@ class TestStepProgressReporter(unittest.TestCase):
     def test_start_after_start(self):
         mock_pubsub_service = MagicMock()
         spr = _spr(self.iservice, mock_pubsub_service)
-        spr.start()
+        spr.create_and_start()
         started_at = spr.step_progress.started_at
         self.assertIsNotNone(started_at)
         publish_call_count = mock_pubsub_service.publish.call_count
@@ -122,7 +123,7 @@ class TestStepProgressReporter(unittest.TestCase):
     def test_start_after_finish(self):
         mock_pubsub_service = MagicMock()
         spr = _spr(self.iservice, mock_pubsub_service)
-        spr.start()
+        spr.create_and_start()
         spr.finish(is_success=True)
         finished_at = spr.step_progress.finished_at
         self.assertEqual(spr.step_progress.run_state, RunState.SUCCEEDED)
@@ -147,7 +148,7 @@ class TestStepProgressReporter(unittest.TestCase):
     def test_with_context_management_success(self):
         mock_pubsub_service = MagicMock()
         with _spr(self.iservice, mock_pubsub_service) as spr:
-            spr.start()
+            spr.create_and_start()
 
         # Should finish on its own
         self.assertEqual(spr.step_progress.run_state, RunState.SUCCEEDED)
@@ -156,7 +157,7 @@ class TestStepProgressReporter(unittest.TestCase):
         error_message = "whoops"
         mock_pubsub_service = MagicMock()
         with _spr(self.iservice, mock_pubsub_service) as spr:
-            spr.start()
+            spr.create_and_start()
             raise RuntimeError(error_message)
 
         self.assertEqual(spr.step_progress.run_state, RunState.FAILED)
