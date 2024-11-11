@@ -63,6 +63,7 @@ class StepProgressReporter:
         StepProgress(short_desc="Find papers"),
         interactions_service
     )
+    find_papers_progress.create()
 
     # Do something
     ...
@@ -73,6 +74,7 @@ class StepProgressReporter:
     # Do more things
     ...
     count_citation_progress = find_papers_progress.create_child_step(short_desc="Count citations")
+    count_citation_progress.create()
     ...
     count_citation_progress.start()
     ...
@@ -88,8 +90,8 @@ class StepProgressReporter:
         # Do something
         ...
 
-        # You still need to start the step
-        spr.start()
+        # You still need to create and start the step
+        spr.create_and_start()
 
     # This step will be automatically finished when the context exits.
     # If an exception is raised, the step will be marked as failed
@@ -112,7 +114,28 @@ class StepProgressReporter:
         self.interactions_service = interactions_service
         self.pubsub_service = pubsub_service
 
-        # Report step creation
+    def __enter__(self):
+        return self
+
+    def __exit__(self, error_type, value, traceback):
+        is_success = error_type is None
+        self.finish(is_success=is_success, error_message=str(value))
+        return True
+
+    def create(self) -> Optional[str]:
+        """Create a step"""
+        if self.step_progress.run_state in [
+            RunState.RUNNING,
+            RunState.SUCCEEDED,
+            RunState.FAILED,
+        ]:
+            logging.warning(
+                f"Trying to create an already running/completed step. "
+                f"Doing nothing instead. Step id: {self.step_progress.step_id}. "
+                f"Run state: {self.step_progress.run_state}."
+            )
+            return None
+
         self.step_progress.run_state = RunState.CREATED
         event_id_opt = self._save_progress_to_istore()
 
@@ -123,14 +146,7 @@ class StepProgressReporter:
 
             # Publish to topic
             self._publish_to_topic(event_id_opt, self.step_progress.created_at)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, error_type, value, traceback):
-        is_success = error_type is None
-        self.finish(is_success=is_success, error_message=str(value))
-        return True
+        return event_id_opt
 
     def start(self) -> Optional[str]:
         """Start a step"""
@@ -152,6 +168,11 @@ class StepProgressReporter:
         if event_id_opt:
             self._publish_to_topic(event_id_opt, self.step_progress.started_at)
         return event_id_opt
+
+    def create_and_start(self) -> Optional[str]:
+        """Create and start a step"""
+        self.create()
+        return self.start()
 
     def finish(
         self, is_success: bool, error_message: Optional[str] = None
