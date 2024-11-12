@@ -8,7 +8,7 @@ from enum import Enum
 from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_serializer, ConfigDict
+from pydantic import BaseModel, Field, field_serializer, ConfigDict, model_validator
 
 
 class Surface(str, Enum):
@@ -310,12 +310,21 @@ class StepCost(BaseModel):
     """Wrapping service cost with event metadata so that it can be converted to an Event object."""
 
     actor_id: UUID
-    message_id: str
+    message_id: Optional[str] = None
+    thread_id: Optional[str] = None
     service_cost: ServiceCost
 
     @field_serializer("actor_id")
     def serialize_actor_id(self, actor_id: UUID):
         return str(actor_id)
+
+    @model_validator(mode="after")
+    def check_at_least_one_id(cls, model):
+        if not (model.message_id or model.thread_id):
+            raise ValueError(
+                "At least one of 'message_id' or 'thread_id' must be provided."
+            )
+        return model
 
     def to_event(self) -> Event:
         return Event(
@@ -326,6 +335,7 @@ class StepCost(BaseModel):
             # This flag is needed to serialize subclass
             # https://docs.pydantic.dev/latest/concepts/serialization/#serializeasany-annotation
             data=self.service_cost.model_dump(serialize_as_any=True),
+            thread_id=self.thread_id,
             message_id=self.message_id,
         )
 
