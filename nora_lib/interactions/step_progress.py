@@ -123,7 +123,7 @@ class StepProgressReporter:
         return True
 
     def create(self) -> Optional[str]:
-        """Create a step"""
+        """Create a step, but don't start it yet. This is useful for defining plans."""
         if self.step_progress.run_state in [
             RunState.RUNNING,
             RunState.SUCCEEDED,
