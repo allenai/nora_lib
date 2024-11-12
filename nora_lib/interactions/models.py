@@ -317,11 +317,13 @@ class StepCost(BaseModel):
     @field_serializer("actor_id")
     def serialize_actor_id(self, actor_id: UUID):
         return str(actor_id)
-    
-    @model_validator(mode='after')
+
+    @model_validator(mode="after")
     def check_at_least_one_id(cls, model):
         if not (model.message_id or model.thread_id):
-            raise ValueError("At least one of 'message_id' or 'thread_id' must be provided.")
+            raise ValueError(
+                "At least one of 'message_id' or 'thread_id' must be provided."
+            )
         return model
 
     def to_event(self) -> Event:
