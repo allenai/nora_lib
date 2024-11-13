@@ -84,14 +84,14 @@ class StepProgressReporter:
     # Finish the step
     find_papers_progress.finish(is_success=False, error_message="Something went wrong")
 
-    # Alternatively, you can use this as a context.
+    # Alternatively, you can use this as a context. The step will be automatically created.
 
     with StepProgressReporter(...) as spr:
         # Do something
         ...
 
-        # You still need to create and start the step
-        spr.create_and_start()
+        # You still need to start the step
+        spr.start()
 
     # This step will be automatically finished when the context exits.
     # If an exception is raised, the step will be marked as failed
@@ -115,6 +115,7 @@ class StepProgressReporter:
         self.pubsub_service = pubsub_service
 
     def __enter__(self):
+        self.create()
         return self
 
     def __exit__(self, error_type, value, traceback):
@@ -168,11 +169,6 @@ class StepProgressReporter:
         if event_id_opt:
             self._publish_to_topic(event_id_opt, self.step_progress.started_at)
         return event_id_opt
-
-    def create_and_start(self) -> Optional[str]:
-        """Create and start a step"""
-        self.create()
-        return self.start()
 
     def finish(
         self, is_success: bool, error_message: Optional[str] = None
