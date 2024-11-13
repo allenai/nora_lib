@@ -81,7 +81,8 @@ class TestStepProgressReporter(unittest.TestCase):
     def test_finish_after_finish(self):
         mock_pubsub_service = MagicMock()
         spr = _spr(self.iservice, mock_pubsub_service)
-        spr.create_and_start()
+        spr.create()
+        spr.start()
         spr.finish(is_success=False, error_message="error")
         failed_at = spr.step_progress.finished_at
         self.assertEqual(spr.step_progress.run_state, RunState.FAILED)
@@ -108,7 +109,8 @@ class TestStepProgressReporter(unittest.TestCase):
     def test_start_after_start(self):
         mock_pubsub_service = MagicMock()
         spr = _spr(self.iservice, mock_pubsub_service)
-        spr.create_and_start()
+        spr.create()
+        spr.start()
         started_at = spr.step_progress.started_at
         self.assertIsNotNone(started_at)
         publish_call_count = mock_pubsub_service.publish.call_count
@@ -123,7 +125,8 @@ class TestStepProgressReporter(unittest.TestCase):
     def test_start_after_finish(self):
         mock_pubsub_service = MagicMock()
         spr = _spr(self.iservice, mock_pubsub_service)
-        spr.create_and_start()
+        spr.create()
+        spr.start()
         spr.finish(is_success=True)
         finished_at = spr.step_progress.finished_at
         self.assertEqual(spr.step_progress.run_state, RunState.SUCCEEDED)
