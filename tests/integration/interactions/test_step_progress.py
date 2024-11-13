@@ -151,7 +151,7 @@ class TestStepProgressReporter(unittest.TestCase):
     def test_with_context_management_success(self):
         mock_pubsub_service = MagicMock()
         with _spr(self.iservice, mock_pubsub_service) as spr:
-            spr.create_and_start()
+            spr.start()
 
         # Should finish on its own
         self.assertEqual(spr.step_progress.run_state, RunState.SUCCEEDED)
@@ -160,7 +160,7 @@ class TestStepProgressReporter(unittest.TestCase):
         error_message = "whoops"
         mock_pubsub_service = MagicMock()
         with _spr(self.iservice, mock_pubsub_service) as spr:
-            spr.create_and_start()
+            spr.start()
             raise RuntimeError(error_message)
 
         self.assertEqual(spr.step_progress.run_state, RunState.FAILED)
