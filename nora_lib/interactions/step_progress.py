@@ -234,7 +234,7 @@ class StepProgressReporter:
             type=EventType.STEP_PROGRESS.value,
             actor_id=self.actor_id,
             timestamp=datetime.now(),
-            data=self.step_progress.model_dump(),
+            data=self.step_progress.model_dump(exclude_none=True),
             message_id=self.message_id,
         )
 
