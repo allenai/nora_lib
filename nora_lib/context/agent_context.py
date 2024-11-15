@@ -40,4 +40,4 @@ class AgentContext(BaseModel):
     message: MessageAgentContext
     pubsub: PubsubAgentContext
     tool_config: ToolConfigAgentContext
-    parent_step_progress_id: Optional[str] = None
+    step_id: Optional[str] = None
