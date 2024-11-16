@@ -1,3 +1,5 @@
+from typing import Optional
+
 from nora_lib.interactions.models import Surface
 from pydantic import BaseModel
 
@@ -38,3 +40,4 @@ class AgentContext(BaseModel):
     message: MessageAgentContext
     pubsub: PubsubAgentContext
     tool_config: ToolConfigAgentContext
+    step_id: Optional[str] = None
