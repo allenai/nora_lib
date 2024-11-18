@@ -119,8 +119,47 @@ class Event(BaseModel):
 class EventType(Enum):
     """Enumeration of event types"""
 
+    # NOTE: These names should correspond to the ones in graphql/src/schema/Event.ts
+
+    # Recording agent tool calls in the context
+    AGENT_EVENT_TYPE = "agent:message_context"
+
+    # Marks a thread forked from Slack to Web
+    THREAD_FORK = "thread_fork"
+
+    # Cost Reporting
     STEP_COST = "step_cost"
     STEP_PROGRESS = "step_progress"
+
+    ADHOC_DEBUG = "adhoc_debug"
+
+    S2_ANNOTATION = "s2_annotation"
+
+    # Locking handler responses to a thread
+    HANDLER_START = "handler_start"
+    HANDLER_END = "handler_end"
+
+    # User feedback events
+    REACTION_ADDED = "reaction_added"
+    REACTION_REMOVED = "reaction_removed"
+    USER_FEEDBACK = "user_feedback"
+    USER_FEEDBACK_THREAD = "user_feedback_thread"
+
+    # Table widget events
+    UI_INTERACTION = "ui_interaction"
+    UI_STATE = "ui_state"
+    WIDGET_TABLE = "widget_table"
+
+    # Deprecated cost reporting
+    COST_REPORT = "cost_report"
+
+    ERROR = "error"
+
+
+class ThreadForkEventData(BaseModel):
+    """Event data for a thread fork event"""
+
+    previous_message_id: str
 
 
 class Thread(BaseModel):
