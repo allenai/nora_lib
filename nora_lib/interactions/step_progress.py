@@ -199,7 +199,7 @@ class StepProgressReporter:
             return event_id_opt
 
     def create_child_step(
-        self, short_desc: str, long_desc: Optional[str] = None
+        self, short_desc: str, **step_progress_kwargs
     ) -> "StepProgressReporter":
         """Create a child step"""
         child_step_progress_event = StepProgressReporter(
@@ -208,8 +208,9 @@ class StepProgressReporter:
             thread_id=self.thread_id,
             step_progress=StepProgress(
                 parent_step_id=self.step_progress.step_id,
+                task_id=self.step_progress.task_id,
                 short_desc=short_desc,
-                long_desc=long_desc,
+                **step_progress_kwargs,
             ),
             interactions_service=self.interactions_service,
             pubsub_service=self.pubsub_service,
