@@ -39,7 +39,10 @@ def _spr(
         actor_id=ACTOR,
         message_id=message.message_id,
         thread_id=message.thread_id,
-        step_progress=StepProgress(short_desc="short step"),
+        step_progress=StepProgress(
+            short_desc="short step",
+            task_id=str(uuid4()),
+        ),
         interactions_service=iservice,
         pubsub_service=pubsub_service,
     )
@@ -146,6 +149,9 @@ class TestStepProgressReporter(unittest.TestCase):
         self.assertNotEqual(child_spr.step_progress.step_id, spr.step_progress.step_id)
         self.assertEqual(
             child_spr.step_progress.parent_step_id, spr.step_progress.step_id
+        )
+        self.assertEqual(
+            child_spr.step_progress.task_id, spr.step_progress.task_id
         )
 
     def test_with_context_management_success(self):
