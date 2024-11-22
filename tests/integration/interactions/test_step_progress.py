@@ -150,9 +150,7 @@ class TestStepProgressReporter(unittest.TestCase):
         self.assertEqual(
             child_spr.step_progress.parent_step_id, spr.step_progress.step_id
         )
-        self.assertEqual(
-            child_spr.step_progress.task_id, spr.step_progress.task_id
-        )
+        self.assertEqual(child_spr.step_progress.task_id, spr.step_progress.task_id)
 
     def test_with_context_management_success(self):
         mock_pubsub_service = MagicMock()
