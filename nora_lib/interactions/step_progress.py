@@ -173,7 +173,9 @@ class StepProgressReporter:
             self._publish_to_topic(event_id, self.step_progress.started_at)
             return event_id
         except Exception as e:
-            logging.warning(f"Failed to start step id {self.step_progress.step_id}: {e}")
+            logging.warning(
+                f"Failed to start step id {self.step_progress.step_id}: {e}"
+            )
             return None
 
     def finish(
@@ -204,7 +206,9 @@ class StepProgressReporter:
                 self._publish_to_topic(event_id, self.step_progress.finished_at)
                 return event_id
             except Exception as e:
-                logging.warning(f"Failed to finish step id {self.step_progress.step_id}: {e}")
+                logging.warning(
+                    f"Failed to finish step id {self.step_progress.step_id}: {e}"
+                )
                 return None
 
     def create_child_step(
