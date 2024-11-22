@@ -138,16 +138,20 @@ class StepProgressReporter:
             return None
 
         self.step_progress.run_state = RunState.CREATED
-        event_id_opt = self._save_progress_to_istore()
+        try:
+            event_id_opt = self._save_progress_to_istore()
 
-        # Use DB timestamp for created_at
-        if event_id_opt:
-            event = self.interactions_service.get_event(event_id_opt)
-            self.step_progress.created_at = event.timestamp
+            # Use DB timestamp for created_at
+            if event_id_opt:
+                event = self.interactions_service.get_event(event_id_opt)
+                self.step_progress.created_at = event.timestamp
 
-            # Publish to topic
-            self._publish_to_topic(event_id_opt, self.step_progress.created_at)
-        return event_id_opt
+                # Publish to topic
+                self._publish_to_topic(event_id_opt, self.step_progress.created_at)
+            return event_id_opt
+        except Exception as e:
+            logging.warning(f"Failed to create step: {e}")
+            return None
 
     def start(self) -> Optional[str]:
         """Start a step"""
@@ -165,10 +169,14 @@ class StepProgressReporter:
 
         self.step_progress.started_at = datetime.now(timezone.utc)
         self.step_progress.run_state = RunState.RUNNING
-        event_id_opt = self._save_progress_to_istore()
-        if event_id_opt:
-            self._publish_to_topic(event_id_opt, self.step_progress.started_at)
-        return event_id_opt
+        try:
+            event_id_opt = self._save_progress_to_istore()
+            if event_id_opt:
+                self._publish_to_topic(event_id_opt, self.step_progress.started_at)
+            return event_id_opt
+        except Exception as e:
+            logging.warning(f"Failed to start step id {self.step_progress.step_id}: {e}")
+            return None
 
     def finish(
         self, is_success: bool, error_message: Optional[str] = None
@@ -193,10 +201,14 @@ class StepProgressReporter:
                 RunState.SUCCEEDED if is_success else RunState.FAILED
             )
             self.step_progress.error_message = error_message if error_message else None
-            event_id_opt = self._save_progress_to_istore()
-            if event_id_opt:
-                self._publish_to_topic(event_id_opt, self.step_progress.finished_at)
-            return event_id_opt
+            try:
+                event_id_opt = self._save_progress_to_istore()
+                if event_id_opt:
+                    self._publish_to_topic(event_id_opt, self.step_progress.finished_at)
+                return event_id_opt
+            except Exception as e:
+                logging.warning(f"Failed to finish step id {self.step_progress.step_id}: {e}")
+                return None
 
     def create_child_step(
         self, short_desc: str, **step_progress_kwargs
@@ -217,7 +229,7 @@ class StepProgressReporter:
         )
         return child_step_progress_event
 
-    def _save_progress_to_istore(self) -> Optional[str]:
+    def _save_progress_to_istore(self) -> str:
         """Save a step progress to the Interactions Store. Returns the event id if successful."""
         try:
             return self.interactions_service.save_event(self._to_event())
@@ -226,9 +238,7 @@ class StepProgressReporter:
                 logging.warning(
                     f"Cannot find message id {self.message_id} to attach step progress to."
                 )
-                return None
-            else:
-                raise e
+            raise e
 
     def _to_event(self) -> Event:
         return Event(
