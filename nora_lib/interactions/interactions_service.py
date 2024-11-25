@@ -345,7 +345,6 @@ class InteractionsService:
                         "events": event_query,
                     }
                 },
-                "messages": message_query,
             },
         }
         response = self._post(
