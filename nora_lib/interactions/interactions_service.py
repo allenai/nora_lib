@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import logging
 
 import requests
@@ -14,6 +15,7 @@ from nora_lib.interactions.models import (
     AnnotationBatch,
     StepCost,
     Event,
+    EventType,
     Message,
     ReturnedMessage,
     ReturnedEvent,
@@ -116,6 +118,52 @@ class InteractionsService:
             thread.model_dump(),
         )
         response.raise_for_status()
+
+    def save_message_reaction(self, message_id: str, reaction: str, actor_id: str) -> str:
+        """Save reaction as an event on a message, returns event id if successful"""
+        if reaction is None:
+            event = Event(
+                type=EventType.REACTION_REMOVED.value,
+                actor_id=actor_id,
+                timestamp=datetime.now(timezone.utc),
+                message_id=message_id,
+            )
+        else:
+            event = Event(
+                type=EventType.REACTION_ADDED.value,
+                actor_id=actor_id,
+                timestamp=datetime.now(timezone.utc),
+                text=reaction,
+                message_id=message_id,
+            )
+
+        return self.save_event(event)
+    
+    def save_message_feedback(self, message_id: str, feedback: str, actor_id: str) -> str:
+        """Save feedback as an event on a message, returns event id if successful"""
+        event = Event(
+            type=EventType.USER_FEEDBACK.value,
+            actor_id=actor_id,
+            timestamp=datetime.now(timezone.utc),
+            text=feedback,
+            message_id=message_id,
+        )
+
+        return self.save_event(event)
+
+    def save_thread_feedback(
+        self, thread_id: str, feedback: str, actor_id: str
+    ) -> str:
+        """Save feedback as an event on a thread, returns event id if successful"""
+        event = Event(
+            type=EventType.USER_FEEDBACK_THREAD.value,
+            actor_id=actor_id,
+            timestamp=datetime.now(timezone.utc),
+            text=feedback,
+            thread_id=thread_id,
+        )
+
+        return self.save_event(event)    
 
     def get_virtual_thread_content(
         self, message_id: str, virtual_thread_id: str
