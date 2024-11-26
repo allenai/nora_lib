@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import logging
+from uuid import UUID
 
 import requests
 from typing import Optional, List
@@ -119,7 +120,9 @@ class InteractionsService:
         )
         response.raise_for_status()
 
-    def save_message_reaction(self, message_id: str, reaction: str, actor_id: str) -> str:
+    def save_message_reaction(
+        self, message_id: str, reaction: str, actor_id: UUID
+    ) -> str:
         """Save reaction as an event on a message, returns event id if successful"""
         if reaction is None:
             event = Event(
@@ -138,8 +141,10 @@ class InteractionsService:
             )
 
         return self.save_event(event)
-    
-    def save_message_feedback(self, message_id: str, feedback: str, actor_id: str) -> str:
+
+    def save_message_feedback(
+        self, message_id: str, feedback: str, actor_id: UUID
+    ) -> str:
         """Save feedback as an event on a message, returns event id if successful"""
         event = Event(
             type=EventType.USER_FEEDBACK.value,
@@ -152,7 +157,7 @@ class InteractionsService:
         return self.save_event(event)
 
     def save_thread_feedback(
-        self, thread_id: str, feedback: str, actor_id: str
+        self, thread_id: str, feedback: str, actor_id: UUID
     ) -> str:
         """Save feedback as an event on a thread, returns event id if successful"""
         event = Event(
@@ -163,7 +168,7 @@ class InteractionsService:
             thread_id=thread_id,
         )
 
-        return self.save_event(event)    
+        return self.save_event(event)
 
     def get_virtual_thread_content(
         self, message_id: str, virtual_thread_id: str
