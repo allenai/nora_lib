@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field, field_serializer, ConfigDict, model_valid
 class Surface(str, Enum):
     SLACK = "Slack"
     WEB = "NoraWebapp"
+    CORPUS_QA_DEMO = "CorpusQADemo"
 
 
 class Annotation(BaseModel):
