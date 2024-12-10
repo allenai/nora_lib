@@ -373,16 +373,25 @@ class InteractionsService:
         channel_id: str,
         min_timestamp: Optional[str] = None,
         event_types: Optional[List[str]] = None,
-        most_recent: Optional[int] = None,
+        num_most_recent_threads: Optional[int] = None,
+        num_most_recent_messages_per_thread: Optional[int] = None,
     ) -> dict:
         """
         Fetch all threads, messages, and events including nested ones for a given channel
         """
         channel_search_url = f"{self.base_url}/interaction/v1/search/channel"
+        thread_filter_query = {
+            "min_timestamp": min_timestamp if min_timestamp else None,
+            "most_recent": num_most_recent_threads if num_most_recent_threads else None,
+        }
         event_query = {"filter": None if event_types is None else {"type": event_types}}
         message_filter_query = {
             "min_timestamp": min_timestamp if min_timestamp else None,
-            "most_recent": most_recent if most_recent else None,
+            "most_recent": (
+                num_most_recent_messages_per_thread
+                if num_most_recent_messages_per_thread
+                else None
+            ),
         }
         message_query = {
             "relations": {"events": event_query, "annotations:": {}},
@@ -393,10 +402,11 @@ class InteractionsService:
             "id": channel_id,
             "relations": {
                 "threads": {
+                    "filter": thread_filter_query,
                     "relations": {
                         "messages": message_query,
                         "events": event_query,
-                    }
+                    },
                 },
             },
         }
