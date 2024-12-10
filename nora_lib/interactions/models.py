@@ -125,6 +125,9 @@ class EventType(Enum):
     # Recording agent tool calls in the context
     AGENT_EVENT_TYPE = "agent:message_context"
 
+    # State storage for handler extensions
+    HANDLER_EXTENSION_STATE = "handler_extension_state"
+
     # Marks a thread forked from Slack to Web
     THREAD_FORK = "thread_fork"
 
