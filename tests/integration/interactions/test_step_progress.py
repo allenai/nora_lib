@@ -155,10 +155,15 @@ class TestStepProgressReporter(unittest.TestCase):
     def test_with_context_management_success(self):
         mock_pubsub_service = MagicMock()
         with _spr(self.iservice, mock_pubsub_service) as spr:
-            spr.start()
+            pass
 
         # Should finish on its own
         self.assertEqual(spr.step_progress.run_state, RunState.SUCCEEDED)
+        # Should automatically go through all state transitions: CREATED -> RUNNING -> SUCCEEDED
+        self.assertIsNotNone(spr.step_progress.created_at)
+        self.assertIsNotNone(spr.step_progress.started_at)
+        self.assertIsNotNone(spr.step_progress.finished_at)
+        self.assertEqual(mock_pubsub_service.publish.call_count, 3)
 
     def test_with_context_management_catch_exception(self):
         error_message = "whoops"
