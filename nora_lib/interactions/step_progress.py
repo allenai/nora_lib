@@ -71,7 +71,7 @@ class StepProgressReporter:
     # Start the step
     find_papers_progress.start()
 
-    # Do more things
+    # Describe a part of the work of that outer step as a child step.
     ...
     count_citation_progress = find_papers_progress.create_child_step(short_desc="Count citations")
     count_citation_progress.create()
@@ -81,19 +81,17 @@ class StepProgressReporter:
     count_citation_progress.finish(is_success=True)
     ...
 
-    # Finish the step
+    # Finish the outer step
     find_papers_progress.finish(is_success=False, error_message="Something went wrong")
 
-    # Alternatively, you can use this as a context. The step will be automatically created.
+    # Alternatively, you can use this as a context. Step state transitions are managed for you,
+    # so you should NOT call any of the create/start/finish methods.
 
     with StepProgressReporter(...) as spr:
         # Do something
         ...
 
-        # You still need to start the step
-        spr.start()
-
-    # This step will be automatically finished when the context exits.
+    # This step will be automatically created, started, and finished when the context exits.
     # If an exception is raised, the step will be marked as failed
     # and the exception message will be recorded in the error_message field
     """
