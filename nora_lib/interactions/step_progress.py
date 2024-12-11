@@ -115,7 +115,9 @@ class StepProgressReporter:
         self.pubsub_service = pubsub_service
 
     def __enter__(self):
-        self.create()
+        if self.step_progress.run_state != RunState.CREATED:
+            self.create()
+        self.start()
         return self
 
     def __exit__(self, error_type, value, traceback):
