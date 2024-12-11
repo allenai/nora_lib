@@ -113,7 +113,7 @@ class StepProgressReporter:
         self.pubsub_service = pubsub_service
 
     def __enter__(self):
-        if self.step_progress.run_state != RunState.CREATED:
+        if self.step_progress.created_at is None:
             self.create()
         self.start()
         return self
