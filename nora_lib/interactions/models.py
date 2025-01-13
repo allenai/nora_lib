@@ -153,6 +153,7 @@ class EventType(Enum):
     UI_INTERACTION = "ui_interaction"
     UI_STATE = "ui_state"
     WIDGET_TABLE = "widget_table"
+    WIDGET_TABLE_RELATED_PAPERS = "widget_table_related_papers"
 
     # Deprecated cost reporting
     COST_REPORT = "cost_report"
