@@ -375,6 +375,7 @@ class InteractionsService:
         event_types: Optional[List[str]] = None,
         num_most_recent_threads: Optional[int] = None,
         num_most_recent_messages_per_thread: Optional[int] = None,
+        num_oldest_messages_per_thread: Optional[int] = None,
     ) -> dict:
         """
         Fetch all threads, messages, and events including nested ones for a given channel
@@ -390,6 +391,11 @@ class InteractionsService:
             "most_recent": (
                 num_most_recent_messages_per_thread
                 if num_most_recent_messages_per_thread
+                else None
+            ),
+            "oldest": (
+                num_oldest_messages_per_thread
+                if num_oldest_messages_per_thread
                 else None
             ),
         }
