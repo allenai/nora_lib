@@ -23,6 +23,7 @@ from nora_lib.interactions.models import (
     Thread,
     ThreadRelationsResponse,
     VirtualThread,
+    ThreadStatus,
 )
 
 
@@ -375,12 +376,18 @@ class InteractionsService:
         event_types: Optional[List[str]] = None,
         num_most_recent_threads: Optional[int] = None,
         num_most_recent_messages_per_thread: Optional[int] = None,
+        thread_status: List[ThreadStatus] = [
+            ThreadStatus.ACTIVE,
+            ThreadStatus.ARCHIVED,
+            ThreadStatus.DELETED,
+        ],
     ) -> dict:
         """
         Fetch all threads, messages, and events including nested ones for a given channel
         """
         channel_search_url = f"{self.base_url}/interaction/v1/search/channel"
         thread_filter_query = {
+            "status": thread_status,
             "min_timestamp": min_timestamp if min_timestamp else None,
             "most_recent": num_most_recent_threads if num_most_recent_threads else None,
         }

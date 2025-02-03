@@ -17,6 +17,12 @@ class Surface(str, Enum):
     CORPUS_QA_DEMO = "CorpusQADemo"
 
 
+class ThreadStatus(str, Enum):
+    ACTIVE = "Active"
+    ARCHIVED = "Archived"
+    DELETED = "Deleted"
+
+
 class Annotation(BaseModel):
     # Need this config to stringify numeric values in attributes.
     # Otherwise, we'll get 'Input should be a valid string' error.
@@ -172,6 +178,7 @@ class Thread(BaseModel):
     thread_id: str
     channel_id: str
     surface: Surface
+    status: ThreadStatus
 
 
 class ReturnedEvent(BaseModel):
