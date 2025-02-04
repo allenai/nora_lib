@@ -377,11 +377,7 @@ class InteractionsService:
         num_most_recent_threads: Optional[int] = None,
         num_most_recent_messages_per_thread: Optional[int] = None,
         num_oldest_messages_per_thread: Optional[int] = None,
-        thread_status: List[ThreadStatus] = [
-            ThreadStatus.ACTIVE,
-            ThreadStatus.ARCHIVED,
-            ThreadStatus.DELETED,
-        ],
+        thread_status: List[ThreadStatus] = [ThreadStatus.ACTIVE],
     ) -> dict:
         """
         Fetch all threads, messages, and events including nested ones for a given channel
