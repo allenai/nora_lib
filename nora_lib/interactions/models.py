@@ -148,6 +148,8 @@ class EventType(Enum):
     REACTION_REMOVED = "reaction_removed"
     USER_FEEDBACK = "user_feedback"
     USER_FEEDBACK_THREAD = "user_feedback_thread"
+    REACTION_ADDED_THREAD = "reaction_added_thread"
+    REACTION_REMOVED_THREAD = "reaction_removed_thread"
 
     # Table widget events
     UI_INTERACTION = "ui_interaction"
