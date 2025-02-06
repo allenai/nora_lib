@@ -164,6 +164,9 @@ class EventType(Enum):
     WIDGET_TABLE_RELATED_PAPERS = "widget_table_related_papers"
     WIDGET_TABLE_ADD_RELATED_PAPERS = "widget_table_add_related_papers"
 
+    # Consent 
+    CONSENT = "consent"
+    
     # Deprecated cost reporting
     COST_REPORT = "cost_report"
 
