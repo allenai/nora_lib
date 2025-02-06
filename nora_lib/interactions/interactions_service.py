@@ -152,7 +152,7 @@ class InteractionsService:
             actor_id=actor_id,
             timestamp=datetime.now(timezone.utc),
             text=reaction,
-            message_id=channel_id,
+            channel_id=channel_id,
             data={"consent": consent}
         )
 
