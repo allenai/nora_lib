@@ -143,6 +143,21 @@ class InteractionsService:
 
         return self.save_event(event)
 
+    def save_consent_event(
+        self, channel_id: str, consent:str
+    ) -> str:
+        """Save user consent as an event on message"""
+        event = Event(
+            type=EventType.Consent.value,
+            actor_id=actor_id,
+            timestamp=datetime.now(timezone.utc),
+            text=reaction,
+            message_id=channel_id,
+            data={"consent": consent}
+        )
+
+        return self.save_event(event)
+
     def save_message_feedback(
         self, message_id: str, feedback: str, actor_id: UUID
     ) -> str:
