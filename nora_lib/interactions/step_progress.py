@@ -110,7 +110,14 @@ class StepProgressReporter:
         self.thread_id = thread_id
         self.step_progress = step_progress
         self.interactions_service = interactions_service
-        self.pubsub_service = pubsub_service
+        # Deprecated. Step progress pubsub notifs do not need to be namespaced.
+        # We'll keep this for backwards compatibility until integrations have been updated.
+        # https://github.com/allenai/nora-issues/issues/1082
+        self.ns_pubsub_service = pubsub_service
+        self.pubsub_service = PubsubService(
+            base_url=pubsub_service.base_url,
+            namespace=None,
+        )
 
     def __enter__(self):
         if self.step_progress.created_at is None:
@@ -252,6 +259,12 @@ class StepProgressReporter:
 
     def _publish_to_topic(self, event_id: str, timestamp: datetime):
         self.pubsub_service.publish(
+            topic=f"thread:{self.thread_id}:step_progress",
+            payload={"event_id": event_id, "timestamp": timestamp.isoformat()},
+        )
+        # Deprecated. Included for backwards compatibility.
+        # https://github.com/allenai/nora-issues/issues/1082
+        self.ns_pubsub_service.publish(
             topic=f"step_progress:{self.thread_id}",
             payload={"event_id": event_id, "timestamp": timestamp.isoformat()},
         )
