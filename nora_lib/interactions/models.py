@@ -166,7 +166,7 @@ class EventType(Enum):
 
     # User's preference to use their queries in a public dataset for future AI research and development
     DATA_CONTRIBUTION_CONSENT = "data_contribution_consent"
-    
+
     # Deprecated cost reporting
     COST_REPORT = "cost_report"
 
