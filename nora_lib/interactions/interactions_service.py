@@ -153,7 +153,7 @@ class InteractionsService:
             timestamp=datetime.now(timezone.utc),
             text=reaction,
             channel_id=channel_id,
-            data={"consent": consent}
+            data={"consent":consent},
         )
 
         return self.save_event(event)
