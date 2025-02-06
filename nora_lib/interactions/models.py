@@ -164,6 +164,9 @@ class EventType(Enum):
     WIDGET_TABLE_RELATED_PAPERS = "widget_table_related_papers"
     WIDGET_TABLE_ADD_RELATED_PAPERS = "widget_table_add_related_papers"
 
+    # User's preference to use their queries in a public dataset for future AI research and development
+    DATA_CONTRIBUTION_CONSENT = "data_contribution_consent"
+
     # Deprecated cost reporting
     COST_REPORT = "cost_report"
 
