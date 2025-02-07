@@ -12,7 +12,7 @@ from requests.auth import AuthBase
 from aws_requests_auth.aws_auth import AWSRequestsAuth
 from typing import Dict, Any
 
-from nora_lib.interactions.models import (
+from nora_lib.impl.interactions.models import (
     AnnotationBatch,
     StepCost,
     Event,
