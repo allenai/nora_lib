@@ -1,3 +1,4 @@
+import os
 import setuptools
 
 runtime_requirements = ["pydantic>=2,<3", "requests", "boto3", "aws_requests_auth"]
@@ -5,7 +6,7 @@ runtime_requirements = ["pydantic>=2,<3", "requests", "boto3", "aws_requests_aut
 # For running tests, linting, etc
 dev_requirements = ["mypy", "pytest", "black", "types-requests"]
 
-version = open("version.txt").read().strip()
+version = os.environ["NORA_LIB_VERSION"]
 
 setuptools.setup(
     name="nora_lib-impl",
