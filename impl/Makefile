@@ -9,7 +9,7 @@ copy-version:
 	cp ../version.txt .
 
 build-image: copy-version
-	docker build --quiet . -t $(IMAGE_TAG)
+	docker build --build-arg NORA_LIB_VERSION=`cat version.txt` --quiet . -t $(IMAGE_TAG)
 
 check-format: build-image
 	$(DOCKER_RUN) black --check --diff src

@@ -8,7 +8,7 @@ copy-src:
 	rsync -a --delete --exclude "impl/*" ../impl/src/ src/
 
 build-image: copy-version copy-src
-	docker build --quiet . -t $(IMAGE_TAG)
+	docker build --build-arg NORA_LIB_VERSION=`cat version.txt` --quiet . -t $(IMAGE_TAG)
 
 mypy: build-image
 	$(DOCKER_RUN) /bin/bash -c 'mypy src'
