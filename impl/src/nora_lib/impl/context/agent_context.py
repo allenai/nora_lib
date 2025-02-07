@@ -1,6 +1,6 @@
 from typing import Optional
 
-from nora_lib.interactions.models import Surface
+from nora_lib.impl.interactions.models import Surface
 from pydantic import BaseModel
 
 
