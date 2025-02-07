@@ -2,36 +2,29 @@
 
 For making and coordinating agents and tools.
 
+There are two sub-projects, `interface` and `impl`
+
+`interface` is for use in open-source projects. It has interfaces for use by agents, but no dependencies on Nora platform code. It publishes a python package named `nora_lib, containing just a subset of the code in the earlier versions of `nora_lib`.
+
+`impl` is for use in the Nora project. It has interface implementations based on the Nora platform. It publishes a python package named `nora_lib-impl`.
+
 # Development
 
-When preparing a PR, make sure you first run the verify script
-to confirm the code is buildable, passes type- and formatting-checks,
-as well as unit tests.
+Verify changes using
 
-```bash
-cd <project_root>
-./verify.sh
 ```
-
-The script will tell you what's wrong if anything fails.
-
-Update the `version=` field in `setup.py` when you make changes
-as part of your changeset.
+make verify
+```
 
 # Publication
 
-After your PR merges to `main` you will need to publish
-the library to public pypi for it to be useable by client applications.
+You can publish a new version from your branch before merging to main, or from main after merging.
 
-This requires one environment variable to be set, which can be found in
-the 1Pass NORA Vault under the secret named "NORA pypi token".
+Edit the `version.txt` file with the new version, then run
 
-```bash
-export AI2_NORA_PYPI_TOKEN=<SECRET IN NORA VAULT>
-cd <project_root>
-git checkout main
-git pull origin main
-git tag v<YOUR_NEW_VERSION>
-git push origin --tags
-./publish.sh
 ```
+export AI2_NORA_PYPI_TOKEN=<SECRET IN NORA VAULT>
+make publish
+```
+
+This will publish versions of both `nora_lib` and `nora_lib-impl` with the version number contained in `version.txt`
