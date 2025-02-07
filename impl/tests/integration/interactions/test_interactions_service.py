@@ -1,7 +1,7 @@
 import unittest
 
-from nora_lib.interactions.interactions_service import InteractionsService
-from nora_lib.interactions.models import *
+from nora_lib.impl.interactions.interactions_service import InteractionsService
+from nora_lib.impl.interactions.models import *
 from uuid import uuid4
 
 ACTOR = uuid4()

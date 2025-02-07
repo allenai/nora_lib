@@ -2,16 +2,18 @@ import unittest
 from unittest.mock import MagicMock, ANY
 from uuid import uuid4
 
-from nora_lib.pubsub import PubsubService
+from nora_lib.progress.models import StepProgress
+from nora_lib.progress.reporter import RunState
 
-from nora_lib.interactions.step_progress import (
+from nora_lib.impl.pubsub import PubsubService
+
+from nora_lib.impl.interactions.step_progress import (
+    StepProgressIStoreWriter,
     StepProgressReporter,
-    StepProgress,
-    RunState,
 )
-from nora_lib.interactions.models import *
+from nora_lib.impl.interactions.models import *
 
-from nora_lib.interactions.interactions_service import InteractionsService
+from nora_lib.impl.interactions.interactions_service import InteractionsService
 
 ACTOR = uuid4()
 THREAD = str(uuid4())
@@ -51,9 +53,7 @@ def _spr(
 class TestStepProgressReporter(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.iservice = InteractionsService(
-            "http://interaction_service:9080", token="test"
-        )
+        cls.iservice = InteractionsService("http://interaction_service:9080", token="test")
 
     def test_create_start_finish_success(self):
         mock_pubsub_service = MagicMock()
@@ -62,24 +62,22 @@ class TestStepProgressReporter(unittest.TestCase):
         self.assertEqual(spr.step_progress.run_state, RunState.CREATED)
         self.assertIsNotNone(spr.step_progress.created_at)
         mock_pubsub_service.publish.assert_called_once_with(
-            topic=f"step_progress:{spr.thread_id}", payload=ANY
+            topic=f"step_progress:{spr.writer.thread_id}", payload=ANY
         )
 
-        start_event_id = spr.start()
+        spr.start()
         self.assertEqual(spr.step_progress.run_state, RunState.RUNNING)
-        self.assertEqual(
-            mock_pubsub_service.publish.call_args[1]["payload"]["event_id"],
-            start_event_id,
-        )
+        start_event_id = mock_pubsub_service.publish.call_args[1]["payload"]["event_id"]
+        assert start_event_id is not None
 
         self.assertIsNone(spr.step_progress.finished_at)
-        finish_event_id = spr.finish(is_success=True)
+        spr.finish(is_success=True)
         self.assertEqual(spr.step_progress.run_state, RunState.SUCCEEDED)
         self.assertIsNotNone(spr.step_progress.finished_at)
-        self.assertEqual(
+        finish_event_id = (
             mock_pubsub_service.publish.call_args[1]["payload"]["event_id"],
-            finish_event_id,
         )
+        assert finish_event_id is not None
 
     def test_finish_after_finish(self):
         mock_pubsub_service = MagicMock()
