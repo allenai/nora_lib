@@ -3,7 +3,7 @@ FROM python:3.9
 WORKDIR /work
 
 COPY pyproject.toml .
-COPY version.txt .
+ARG NORA_LIB_VERSION
 COPY setup.py .
 # Install only dependencies
 RUN mkdir src

@@ -1,3 +1,4 @@
+import os
 import setuptools
 
 runtime_requirements = ["pydantic>=2,<3"]
@@ -5,8 +6,7 @@ runtime_requirements = ["pydantic>=2,<3"]
 # For running tests, linting, etc
 dev_requirements = ["mypy", "pytest", "black"]
 
-# Should always be the same as the nora_lib version
-version = open("version.txt").read().strip()
+version = os.environ["NORA_LIB_VERSION"]
 
 setuptools.setup(
     name="nora_lib",
