@@ -161,7 +161,6 @@ class EventType(Enum):
     SECTION_TABLE_FEEDBACK = "widget_report_section_table_feedback"
     SECTION_TABLE_REACTION = "widget_report_section_table_reaction"
 
-
     # Table widget events
     UI_INTERACTION = "ui_interaction"
     UI_STATE = "ui_state"
