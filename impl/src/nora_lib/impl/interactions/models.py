@@ -5,12 +5,13 @@ Model for interactions to be sent to the interactions service.
 import json
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Annotated, Dict, List, Literal, Optional, Tuple, Union
 from uuid import UUID
 
 from pydantic import (
     BaseModel,
     ConfigDict,
+    Discriminator,
     Field,
     field_serializer,
     field_validator,
@@ -306,16 +307,24 @@ class VirtualThread:
 class CostDetail(BaseModel):
     """
     Base class to store details of cost to service a request by an agent.
-    If an agent has different cost details,
-    it should create another class inheriting this class and add those fields.
+    If an agent has different cost details, it should:
+
+    - create another class inheriting this class and add any additional fields
+    - give the class a unique detail_type
+    - add the class to CostDetailType below
+
     See LLMCost and LLMTokenBreakdown below for examples.
     """
+
+    detail_type: str = "unknown"
 
     model_config = ConfigDict(protected_namespaces=())
 
 
 class LLMCost(CostDetail):
     """LLM cost detail"""
+
+    detail_type: Literal["llm_cost"] = "llm_cost"
 
     token_count: int
     model_name: str
@@ -324,12 +333,16 @@ class LLMCost(CostDetail):
 class LLMTokenBreakdown(CostDetail):
     """Token usage breakdown"""
 
+    detail_type: Literal["llm_token_breakdown"] = "llm_token_breakdown"
+
     prompt_tokens: int
     completion_tokens: int
 
 
 class LangChainRun(CostDetail):
     """LangChain Run"""
+
+    detail_type: Literal["langchain_run"] = "langchain_run"
 
     # Subset of run fields which allow future lookup of run details.
     run_id: UUID
@@ -360,6 +373,23 @@ class LangChainRun(CostDetail):
         return value
 
 
+# Note: CostDetailType is a Union of all the subclasses of CostDetail, with
+# a discriminator for pydantic deserialization
+CostDetailType = Union[
+    Annotated[
+        Union[
+            LLMCost,
+            LLMTokenBreakdown,
+            LangChainRun,
+        ],
+        Discriminator("detail_type"),
+    ],
+    # We fall back to the base class if the discriminator is not found (legacy
+    # events or custom ones written by other apps may be missing detail_type)
+    CostDetail,
+]
+
+
 class ServiceCost(BaseModel):
     """Cost of servicing a request by an agent"""
 
@@ -376,7 +406,7 @@ class ServiceCost(BaseModel):
         description="Agent generated task_id used to track nora assigned tasks",
     )
     tool_call_id: Optional[str] = None
-    details: List[CostDetail] = []
+    details: list[CostDetailType] = Field(default_factory=list)
     env: Optional[str] = None
     git_sha: Optional[str] = None
 
