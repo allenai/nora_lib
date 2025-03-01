@@ -8,7 +8,14 @@ from enum import Enum
 from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_serializer, ConfigDict, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 
 
 class Surface(str, Enum):
@@ -305,7 +312,6 @@ class CostDetail(BaseModel):
     """
 
     model_config = ConfigDict(protected_namespaces=())
-    pass
 
 
 class LLMCost(CostDetail):
@@ -335,15 +341,23 @@ class LangChainRun(CostDetail):
     # Serialize the UUIDs as strings
     @field_serializer("run_id")
     def serialize_id(self, run_id: UUID):
-        return str(run_id)
+        return str(run_id) if run_id is not None else None
 
     @field_serializer("trace_id")
     def serialize_trace_id(self, trace_id: UUID):
-        return str(trace_id)
+        return str(trace_id) if trace_id is not None else None
 
     @field_serializer("session_id")
     def serialize_session_id(self, session_id: UUID):
-        return str(session_id)
+        return str(session_id) if session_id is not None else None
+
+    # Validators to handle legacy "None" strings
+    @field_validator("trace_id", "session_id", mode="before")
+    @classmethod
+    def validate_optional_uuid(cls, value):
+        if value == "None":
+            return None
+        return value
 
 
 class ServiceCost(BaseModel):
