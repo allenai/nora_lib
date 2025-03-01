@@ -1,19 +1,14 @@
 import unittest
-from unittest.mock import MagicMock, ANY
+from unittest.mock import ANY, MagicMock
 from uuid import uuid4
 
 from nora_lib.progress.models import StepProgress
 from nora_lib.progress.reporter import RunState
 
-from nora_lib.impl.pubsub import PubsubService
-
-from nora_lib.impl.interactions.step_progress import (
-    StepProgressIStoreWriter,
-    StepProgressReporter,
-)
-from nora_lib.impl.interactions.models import *
-
 from nora_lib.impl.interactions.interactions_service import InteractionsService
+from nora_lib.impl.interactions.models import *
+from nora_lib.impl.interactions.step_progress import StepProgressReporter
+from nora_lib.impl.pubsub import PubsubService
 
 ACTOR = uuid4()
 THREAD = str(uuid4())
@@ -53,7 +48,9 @@ def _spr(
 class TestStepProgressReporter(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.iservice = InteractionsService("http://interaction_service:9080", token="test")
+        cls.iservice = InteractionsService(
+            "http://interaction_service:9080", token="test"
+        )
 
     def test_create_start_finish_success(self):
         mock_pubsub_service = MagicMock()
