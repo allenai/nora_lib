@@ -318,7 +318,25 @@ class CostDetail(BaseModel):
 
     detail_type: str = "unknown"
 
-    model_config = ConfigDict(protected_namespaces=())
+    model_config = ConfigDict(protected_namespaces=(), extra="allow")
+
+    def try_subclass_conversion(self):
+        """For events with no detail_type, attempt to convert to an appropriate
+        subclass based on the fields.  This is useful for handling legacy
+        events but should not be needed for new events that have detail_type."""
+        # Already a subclass
+        if type(self) is not CostDetail:
+            return self
+
+        d = self.dict()
+        del d["detail_type"]
+        if "token_count" in d and "model_name" in d:
+            return LLMCost(**d)
+        if "prompt_tokens" in d and "completion_tokens" in d:
+            return LLMTokenBreakdown(**d)
+        if "run_id" in d:
+            return LangChainRun(**d)
+        return self
 
 
 class LLMCost(CostDetail):
