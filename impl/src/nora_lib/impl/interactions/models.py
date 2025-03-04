@@ -104,6 +104,7 @@ class Event(BaseModel):
     message_id: Optional[str] = None
     thread_id: Optional[str] = None
     channel_id: Optional[str] = None
+    surface: Optional[Surface] = None
 
     @field_serializer("actor_id")
     def serialize_actor_id(self, actor_id: UUID):
