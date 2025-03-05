@@ -308,13 +308,21 @@ class VirtualThread:
 class CostDetail(BaseModel):
     """
     Base class to store details of cost to service a request by an agent.
-    If an agent has different cost details, it should:
+    If an agent has different cost details (e.g. for non-llm costs), it should:
 
     - create another class inheriting this class and add any additional fields
     - give the class a unique detail_type
     - add the class to CostDetailType below
 
-    See LLMCost and LLMTokenBreakdown below for examples.
+    See LLMCost below as an example.
+
+    To add new details about the cost of an LLM call, add to LLMCost below
+    rather than creating a new detail.  A ServiceCost can have details of
+    multiple LLM calls, so if details are split into multiple instances then
+    they can't easily be connected.
+
+    Any new fields added to an existing subclass must have a default value
+    specified for backward-compatibility.
     """
 
     detail_type: str = "unknown"
@@ -338,15 +346,6 @@ class CostDetail(BaseModel):
         if "run_id" in d:
             return LangChainRun(**d)
         return self
-
-
-class LLMCost(CostDetail):
-    """LLM cost detail"""
-
-    detail_type: Literal["llm_cost"] = "llm_cost"
-
-    token_count: int
-    model_name: str
 
 
 class LLMTokenBreakdown(CostDetail):
@@ -390,6 +389,17 @@ class LangChainRun(CostDetail):
         if value == "None":
             return None
         return value
+
+
+class LLMCost(CostDetail):
+    """Details for the cost/usage of an LLM call."""
+
+    detail_type: Literal["llm_cost"] = "llm_cost"
+
+    model_name: str
+    token_count: int
+
+    token_breakdown: Optional[LLMTokenBreakdown] = None
 
 
 # Note: CostDetailType is a Union of all the subclasses of CostDetail, with
