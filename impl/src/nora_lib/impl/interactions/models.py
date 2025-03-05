@@ -439,6 +439,27 @@ class ServiceCost(BaseModel):
     env: Optional[str] = None
     git_sha: Optional[str] = None
 
+    def with_unified_llm_costs(self) -> "ServiceCost":
+        """
+        Creates a new ServiceCost object with unified LLMCost details.
+
+        This method converts old-style separate LLMCost and LLMTokenBreakdown details
+        into unified LLMCost objects that include token breakdown information.
+
+        Returns:
+            A new ServiceCost object with unified LLMCost details
+
+        Raises:
+            ValueError: If there is ambiguity in matching LLMCost with LLMTokenBreakdown
+        """
+        unified_details = unify_llm_cost_details(self.details)
+
+        # Create a copy of the ServiceCost with unified details
+        # This approach ensures we copy all fields, even if ServiceCost is updated with new fields in the future
+        data = self.model_dump()
+        data["details"] = unified_details
+        return ServiceCost.model_validate(data)
+
 
 class StepCost(BaseModel):
     """Wrapping service cost with event metadata so that it can be converted to an Event object."""
@@ -472,6 +493,104 @@ class StepCost(BaseModel):
             thread_id=self.thread_id,
             message_id=self.message_id,
         )
+
+
+def unify_llm_cost_details(details: List[CostDetailType]) -> List[CostDetailType]:
+    """
+    Convert a list of old-style LLMCost and LLMTokenBreakdown details into a list
+    where these pairs are combined into the new unified LLMCost format.
+
+    This is useful for migrating old ServiceCost events which might have separate
+    LLMCost and LLMTokenBreakdown details for the same LLM call.
+
+    If the function encounters ambiguity (can't confidently pair LLMCost with
+    its corresponding LLMTokenBreakdown), it will raise a ValueError.
+
+    Args:
+        details: List of CostDetail objects that might contain old-style
+                LLMCost and LLMTokenBreakdown details
+
+    Returns:
+        A new list where matching LLMCost and LLMTokenBreakdown pairs are combined
+        into unified LLMCost objects, and other details are left unchanged.
+
+    Raises:
+        ValueError: If there is ambiguity in matching LLMCost with LLMTokenBreakdown
+    """
+    result: List[CostDetailType] = []
+    llm_costs: List[LLMCost] = []
+    token_breakdowns: List[LLMTokenBreakdown] = []
+    other_details: List[CostDetailType] = []
+
+    # Separate details by type
+    for detail in details:
+        if isinstance(detail, LLMCost):
+            llm_costs.append(detail)
+        elif isinstance(detail, LLMTokenBreakdown):
+            token_breakdowns.append(detail)
+        else:
+            other_details.append(detail)
+
+    # If there are no token breakdowns, just return the original details
+    if not token_breakdowns:
+        return details
+
+    # If there's a mismatch in count, we can't be confident about pairing
+    if len(llm_costs) != len(token_breakdowns):
+        raise ValueError(
+            f"Cannot confidently pair LLMCost and LLMTokenBreakdown details: "
+            f"Found {len(llm_costs)} LLMCost and {len(token_breakdowns)} LLMTokenBreakdown details."
+        )
+
+    # Try to pair costs with breakdowns based on token counts
+    matched_breakdowns = set()
+
+    for cost in llm_costs:
+        match_found = False
+        matching_breakdown = None
+        matched_index = -1
+
+        # Look for a token breakdown where total tokens matches the cost token count
+        for i, breakdown in enumerate(token_breakdowns):
+            if i in matched_breakdowns:
+                continue
+
+            total_tokens = breakdown.prompt_tokens + breakdown.completion_tokens
+            if total_tokens == cost.token_count:
+                if match_found:
+                    # If we already found a matching breakdown, we have ambiguity
+                    raise ValueError(
+                        f"Ambiguity in matching LLMCost with token count {cost.token_count} "
+                        f"to LLMTokenBreakdown - multiple matches found."
+                    )
+                match_found = True
+                matching_breakdown = breakdown
+                matched_index = i
+
+        if match_found and matching_breakdown is not None:
+            # Create a new unified LLMCost object
+            new_cost = LLMCost(
+                model_name=cost.model_name,
+                token_count=cost.token_count,
+                token_breakdown=matching_breakdown,
+            )
+            result.append(new_cost)
+            matched_breakdowns.add(matched_index)
+        else:
+            # If no matching breakdown was found based on token count
+            raise ValueError(
+                f"Could not find matching LLMTokenBreakdown for LLMCost with token count {cost.token_count}"
+            )
+
+    # Check if all breakdowns were matched
+    if len(matched_breakdowns) != len(token_breakdowns):
+        raise ValueError("Not all LLMTokenBreakdown details were matched to an LLMCost")
+
+    # Add the other details
+    for detail in other_details:
+        result.append(detail)
+
+    return result
 
 
 def thread_message_lookup_request(message_id: str, event_type: str) -> dict:
