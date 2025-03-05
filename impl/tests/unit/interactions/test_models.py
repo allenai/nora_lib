@@ -178,6 +178,18 @@ def test_unify_llm_cost_details():
     unified = unify_llm_cost_details(details)
     assert len(unified) == 2  # Should return original list
     assert unified[0].token_breakdown is None
+    
+    # Test case 3.5: Already unified list
+    breakdown = LLMTokenBreakdown(prompt_tokens=70, completion_tokens=30)
+    details = [
+        LLMCost(model_name="gpt-4", token_count=100, token_breakdown=breakdown),
+        LangChainRun(run_id=uuid.uuid4(), run_name="test-run"),
+    ]
+    
+    unified = unify_llm_cost_details(details)
+    assert len(unified) == 2  # Should return original list
+    assert unified[0].token_breakdown is not None
+    assert unified[0].token_breakdown.prompt_tokens == 70
 
     # Test case 4: Error - mismatched counts
     details = [
@@ -253,3 +265,21 @@ def test_service_cost_with_unified_llm_costs(step_cost_event_json):
             cost.token_breakdown.prompt_tokens + cost.token_breakdown.completion_tokens
             == cost.token_count
         )
+            
+    # Test case: calling with_unified_llm_costs on an already unified ServiceCost
+    # The method should return a new instance without modifying the details
+    already_unified_cost = unified_cost.with_unified_llm_costs()
+    
+    # Verify it's a new instance but has the same data
+    assert already_unified_cost is not unified_cost
+    assert already_unified_cost.dollar_cost == unified_cost.dollar_cost
+    assert already_unified_cost.service_provider == unified_cost.service_provider
+    
+    # Check that all the details are preserved
+    unified_details = [d for d in already_unified_cost.details]
+    assert len(unified_details) == 4  # 2 LLMCosts and 2 LangChainRuns
+    
+    # Check that the LLMCost token breakdowns are still there
+    unified_cost_details = [d for d in already_unified_cost.details if isinstance(d, LLMCost)]
+    for cost in unified_cost_details:
+        assert cost.token_breakdown is not None

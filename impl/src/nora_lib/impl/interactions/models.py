@@ -445,6 +445,9 @@ class ServiceCost(BaseModel):
 
         This method converts old-style separate LLMCost and LLMTokenBreakdown details
         into unified LLMCost objects that include token breakdown information.
+        
+        If the details are already in the unified format (no separate LLMTokenBreakdown
+        objects), the method will return a copy without modifying the details.
 
         Returns:
             A new ServiceCost object with unified LLMCost details
@@ -452,6 +455,8 @@ class ServiceCost(BaseModel):
         Raises:
             ValueError: If there is ambiguity in matching LLMCost with LLMTokenBreakdown
         """
+        # The unify_llm_cost_details function already handles the case where
+        # there are no token breakdowns by returning the original list.
         unified_details = unify_llm_cost_details(self.details)
 
         # Create a copy of the ServiceCost with unified details
