@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import UUID
 
 from nora_lib.impl.interactions.models import Surface
 from pydantic import BaseModel
@@ -12,7 +13,7 @@ class MessageAgentContext(BaseModel):
     message_id: str
     thread_id: str
     channel_id: str
-    actor_id: str
+    actor_id: UUID
     surface: Surface
 
 
