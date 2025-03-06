@@ -4,6 +4,8 @@ from uuid import UUID
 from nora_lib.impl.interactions.models import Surface
 from pydantic import BaseModel
 
+from nora_lib.serializers import UuidWithSerializer
+
 
 class MessageAgentContext(BaseModel):
     """
@@ -13,7 +15,10 @@ class MessageAgentContext(BaseModel):
     message_id: str
     thread_id: str
     channel_id: str
-    actor_id: UUID
+    # Pydantic models don't actually need this, but some codebases pass model_dump() objects
+    # to other JSON serializers (e.g. FastAPI) which don't handle UUIDs and other python built-ins.
+    # So we use this special UUID wrapper for convenience.
+    actor_id: UuidWithSerializer
     surface: Surface
 
 
