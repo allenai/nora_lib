@@ -3,6 +3,12 @@ import uuid
 
 import pytest
 
+from nora_lib.impl.context.agent_context import (
+    MessageAgentContext,
+    AgentContext,
+    PubsubAgentContext,
+    ToolConfigAgentContext,
+)
 from nora_lib.impl.interactions.models import (
     CostDetail,
     LangChainRun,
@@ -10,7 +16,64 @@ from nora_lib.impl.interactions.models import (
     LLMTokenBreakdown,
     ServiceCost,
     unify_llm_cost_details,
+    Surface,
 )
+
+
+@pytest.fixture
+def agent_context_json():
+    return """
+    {
+      "message": {
+        "message_id": "cbd6b337-3d57-47f7-8fe6-c8ba9472db9a",
+        "thread_id": "94a614e5-cb17-474b-a641-101e24ebfd1f",
+        "channel_id": "5d6791c1-d06b-47e6-abc6-9022395a8977",
+        "actor_id": "b6f72c1d-cff7-4e12-9deb-d4bb79e1617f",
+        "surface": "NoraWebapp"
+      },
+      "pubsub": {
+        "base_url": "https://nora-pubsub.apps.allenai.org",
+        "namespace": "local-jasond"
+      },
+      "tool_config": {
+        "env": "production"
+      },
+      "step_id": null
+    }
+    """
+
+
+@pytest.fixture
+def agent_context_obj():
+    return AgentContext(
+        message=MessageAgentContext(
+            message_id="cbd6b337-3d57-47f7-8fe6-c8ba9472db9a",
+            thread_id="94a614e5-cb17-474b-a641-101e24ebfd1f",
+            channel_id="5d6791c1-d06b-47e6-abc6-9022395a8977",
+            actor_id=uuid.UUID("b6f72c1d-cff7-4e12-9deb-d4bb79e1617f"),
+            surface=Surface.WEB,
+        ),
+        pubsub=PubsubAgentContext(
+            base_url="https://nora-pubsub.apps.allenai.org", namespace="local-jasond"
+        ),
+        tool_config=ToolConfigAgentContext(
+            env="production",
+        ),
+        step_id=None,
+    )
+
+
+def test_agent_context_deser(agent_context_json, agent_context_obj):
+    ctx = AgentContext.model_validate_json(agent_context_json)
+    assert ctx == agent_context_obj
+
+
+def test_agent_context_ser(agent_context_json, agent_context_obj):
+    ser_then_deser = AgentContext.model_validate_json(
+        agent_context_obj.model_dump_json()
+    )
+    expected = AgentContext.model_validate_json(agent_context_json)
+    assert ser_then_deser == expected
 
 
 @pytest.fixture
