@@ -209,6 +209,16 @@ def test_unify_llm_cost_details():
     with pytest.raises(ValueError):
         unify_llm_cost_details(details)
 
+    # Test case 7: Error - Can't mix unified LLMCosts with LLMTokenBreakdowns
+    breakdown = LLMTokenBreakdown(prompt_tokens=70, completion_tokens=30)
+    details = [
+        LLMCost(model_name="gpt-4", token_count=100, token_breakdown=breakdown),
+        breakdown,
+    ]
+
+    with pytest.raises(ValueError):
+        unify_llm_cost_details(details)
+
 
 def test_service_cost_with_unified_llm_costs(step_cost_event_json):
     # Create a ServiceCost from the test fixture JSON

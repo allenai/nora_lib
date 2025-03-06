@@ -523,6 +523,14 @@ def unify_llm_cost_details(details: List[CostDetailType]) -> List[CostDetailType
     token_breakdowns: List[LLMTokenBreakdown] = []
     other_details: List[CostDetailType] = []
 
+    if any(
+        isinstance(detail, LLMCost) and detail.token_breakdown is not None
+        for detail in details
+    ) and any(isinstance(detail, LLMTokenBreakdown) for detail in details):
+        raise ValueError(
+            "Cannot mix LLMCost with token breakdowns with unified LLMCost details"
+        )
+
     # Separate details by type
     for detail in details:
         if isinstance(detail, LLMCost):
