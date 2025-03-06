@@ -6,12 +6,13 @@ from pydantic import BaseModel
 
 class MessageAgentContext(BaseModel):
     """
-    Identifiers for the triggering user message
+    Identifiers for the triggering message
     """
 
     message_id: str
     thread_id: str
     channel_id: str
+    actor_id: str
     surface: Surface
 
 
