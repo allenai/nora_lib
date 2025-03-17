@@ -165,6 +165,8 @@ class EventType(Enum):
     USER_FEEDBACK_THREAD = "user_feedback_thread"
     REACTION_ADDED_THREAD = "reaction_added_thread"
     REACTION_REMOVED_THREAD = "reaction_removed_thread"
+    WIDGET_PAPER_FINDER_TEXT_FEEDBACK = "widget_paper_finder_text_feedback"
+    WIDGET_PAPER_FINDER_REACTION = "widget_paper_finder_reaction"
     WIDGET_REPORT_SECTION_TEXT_FEEDBACK = "widget_report_section_text_feedback"
     WIDGET_REPORT_SECTION_TEXT_REACTION = "widget_report_section_text_reaction"
     WIDGET_REPORT_SECTION_TABLE_FEEDBACK = "widget_report_section_table_feedback"
