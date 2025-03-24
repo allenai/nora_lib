@@ -171,6 +171,8 @@ class EventType(Enum):
     WIDGET_REPORT_SECTION_TEXT_REACTION = "widget_report_section_text_reaction"
     WIDGET_REPORT_SECTION_TABLE_FEEDBACK = "widget_report_section_table_feedback"
     WIDGET_REPORT_SECTION_TABLE_REACTION = "widget_report_section_table_reaction"
+    WIDGET_PAPER_FINDER_PAPER_FEEDBACK = "widget_paper_finder_paper_feedback"
+    WIDGET_PAPER_FINDER_PAPER_REACTION = "widget_paper_finder_paper_reaction"
 
     # Table widget events
     UI_INTERACTION = "ui_interaction"
