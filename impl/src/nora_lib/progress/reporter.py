@@ -66,7 +66,6 @@ class StepProgressReporter:
     def __exit__(self, error_type, value, traceback):
         is_success = error_type is None
         self.finish(is_success=is_success, error_message=str(value))
-        return True
 
     def create(self):
         """Create a step, but don't start it yet. This is useful for defining plans."""
