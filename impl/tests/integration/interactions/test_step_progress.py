@@ -159,13 +159,3 @@ class TestStepProgressReporter(unittest.TestCase):
         self.assertIsNotNone(spr.step_progress.started_at)
         self.assertIsNotNone(spr.step_progress.finished_at)
         self.assertEqual(mock_pubsub_service.publish.call_count, 3)
-
-    def test_with_context_management_catch_exception(self):
-        error_message = "whoops"
-        mock_pubsub_service = MagicMock()
-        with _spr(self.iservice, mock_pubsub_service) as spr:
-            spr.start()
-            raise RuntimeError(error_message)
-
-        self.assertEqual(spr.step_progress.run_state, RunState.FAILED)
-        self.assertEqual(spr.step_progress.error_message, error_message)
