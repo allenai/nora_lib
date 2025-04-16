@@ -163,9 +163,10 @@ class TestStepProgressReporter(unittest.TestCase):
     def test_with_context_management_catch_exception(self):
         error_message = "whoops"
         mock_pubsub_service = MagicMock()
-        with _spr(self.iservice, mock_pubsub_service) as spr:
-            spr.start()
-            raise RuntimeError(error_message)
+        with self.assertRaises(RuntimeError):
+            with _spr(self.iservice, mock_pubsub_service) as spr:
+                spr.start()
+                raise RuntimeError(error_message)
 
         self.assertEqual(spr.step_progress.run_state, RunState.FAILED)
         self.assertEqual(spr.step_progress.error_message, error_message)
