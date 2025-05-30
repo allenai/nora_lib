@@ -41,12 +41,9 @@ class InteractionsService:
     ) -> None:
         self.base_url = base_url
         self.timeout = timeout
-        if auth:
-            self.auth = auth
-        elif token:
+        self.auth = auth
+        if token:
             self.auth = BearerAuth(token)
-        else:
-            raise Exception("Either token or auth must be provided")
 
     def _post(self, url: str, json: Dict[str, Any]) -> Response:
         return requests.post(
@@ -373,6 +370,7 @@ class InteractionsService:
         self,
         channel_id: str,
         min_timestamp: Optional[str] = None,
+        before_timestamp: Optional[str] = None,
         event_types: Optional[List[str]] = None,
         num_most_recent_threads: Optional[int] = None,
         num_most_recent_messages_per_thread: Optional[int] = None,
@@ -386,6 +384,7 @@ class InteractionsService:
         thread_filter_query = {
             "status": thread_status,
             "min_timestamp": min_timestamp if min_timestamp else None,
+            "before_timestamp": before_timestamp if before_timestamp else None,
             "most_recent": num_most_recent_threads if num_most_recent_threads else None,
         }
         event_query = {"filter": None if event_types is None else {"type": event_types}}
