@@ -17,6 +17,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from typing_extensions import deprecated
 
 
 class Surface(str, Enum):
@@ -94,6 +95,7 @@ class Message(BaseModel):
 class Event(BaseModel):
     """event object to be sent to the interactions service; requires association with a message, thread or channel id"""
 
+    event_id: Optional[int]
     type: str
     actor_id: UUID = Field(
         description="identifies actor writing the event to the interaction service"
@@ -203,29 +205,9 @@ class Thread(BaseModel):
     status: ThreadStatus
 
 
-class ReturnedEvent(BaseModel):
-    """Event format returned by the interaction service"""
-
-    event_id: str
-    type: str
-    actor_id: UUID = Field(
-        description="identifies actor writing the event to the interaction service"
-    )
-    timestamp: datetime
-    text: Optional[str] = None
-    data: dict = Field(default_factory=dict)
-    message_id: Optional[str] = None
-    thread_id: Optional[str] = None
-    channel_id: Optional[str] = None
-    surface: Optional[Surface] = None
-
-    @field_serializer("actor_id")
-    def serialize_actor_id(self, actor_id: UUID):
-        return str(actor_id)
-
-    @field_serializer("timestamp")
-    def serialize_timestamp(self, timestamp: datetime):
-        return timestamp.isoformat()
+@deprecated("Use Event instead")
+class ReturnedEvent(Event):
+    pass
 
 
 class ReturnedMessage(BaseModel):
