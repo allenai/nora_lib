@@ -115,8 +115,10 @@ class InteractionsService:
             )
             self.save_event(event)
         response_message = response.json()
-        event_id = response_message["event_id"]
-        return event_id
+        if not event.event_id:
+            # If this is a new event, then we should have gotten back its ID.
+            event.event_id = response_message["event_id"]
+        return event.event_id
 
     def save_thread(self, thread: Thread) -> None:
         """Save a thread to the Interactions API"""

@@ -95,7 +95,7 @@ class Message(BaseModel):
 class Event(BaseModel):
     """event object to be sent to the interactions service; requires association with a message, thread or channel id"""
 
-    event_id: Optional[int] = None
+    event_id: Optional[str] = None
     type: str
     actor_id: UUID = Field(
         description="identifies actor writing the event to the interaction service"
