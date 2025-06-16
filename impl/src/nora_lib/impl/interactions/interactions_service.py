@@ -45,9 +45,10 @@ class InteractionsService:
         if token:
             self.auth = BearerAuth(token)
 
-    def _post(self, url: str, json: Dict[str, Any]) -> Response:
-        return requests.post(
-            url,
+    def _call(self, method: str, url: str, json: Dict[str, Any]) -> Response:
+        return requests.request(
+            method=method,
+            url=url,
             json=json,
             auth=self.auth,
             timeout=self.timeout,
@@ -61,7 +62,8 @@ class InteractionsService:
         :param virtual_thread_id: Optional ID of a virtual thread to associate with the message
         """
         message_url = f"{self.base_url}/interaction/v1/message"
-        response = self._post(
+        response = self._call(
+            "post",
             message_url,
             message.model_dump(),
         )
@@ -85,8 +87,15 @@ class InteractionsService:
         Save an event to the Interaction Store. Returns an event id.
         :param virtual_thread_id: Optional ID of a virtual thread to associate with the event
         """
-        event_url = f"{self.base_url}/interaction/v1/event"
-        response = self._post(
+        if event.event_id:
+            event_url = f"{self.base_url}/interaction/v1/event/{event.event_id}"
+            method = "patch"
+        else:
+            event_url = f"{self.base_url}/interaction/v1/event"
+            method = "post"
+
+        response = self._call(
+            method,
             event_url,
             event.model_dump(),
         )
@@ -105,14 +114,17 @@ class InteractionsService:
                 timestamp=event.timestamp,
             )
             self.save_event(event)
-        response_message = json.loads(response.text)
-        event_id = response_message["event_id"]
-        return event_id
+        response_message = response.json()
+        if not event.event_id:
+            # If this is a new event, then we should have gotten back its ID.
+            event.event_id = response_message["event_id"]
+        return event.event_id
 
     def save_thread(self, thread: Thread) -> None:
         """Save a thread to the Interactions API"""
         thread_url = f"{self.base_url}/interaction/v1/thread"
-        response = self._post(
+        response = self._call(
+            "post",
             thread_url,
             thread.model_dump(),
         )
@@ -191,7 +203,8 @@ class InteractionsService:
             },
         }
 
-        response = self._post(
+        response = self._call(
+            "post",
             message_search_url,
             request_body,
         )
@@ -226,7 +239,8 @@ class InteractionsService:
     def save_annotation(self, annotation: AnnotationBatch) -> None:
         """Save an annotation to the Interactions API"""
         annotation_url = f"{self.base_url}/interaction/v1/annotation"
-        response = self._post(
+        response = self._call(
+            "post",
             annotation_url,
             annotation.model_dump(),
         )
@@ -239,7 +253,8 @@ class InteractionsService:
             "id": message_id,
             "relations": {"thread": {}, "channel": {}, "events": {}, "annotations": {}},
         }
-        response = self._post(
+        response = self._call(
+            "post",
             message_url,
             request_body,
         )
@@ -261,7 +276,8 @@ class InteractionsService:
         request_body = {
             "id": event_id,
         }
-        response = self._post(
+        response = self._call(
+            "post",
             event_url,
             request_body,
         )
@@ -285,7 +301,8 @@ class InteractionsService:
             thread_event_types=thread_event_types,
             most_recent=most_recent,
         )
-        response = self._post(
+        response = self._call(
+            "post",
             message_url,
             request_body,
         )
@@ -307,7 +324,8 @@ class InteractionsService:
             min_timestamp=min_timestamp,
             most_recent=most_recent,
         )
-        response = self._post(
+        response = self._call(
+            "post",
             message_url,
             request_body,
         )
@@ -338,7 +356,8 @@ class InteractionsService:
             },
         }
 
-        response = self._post(
+        response = self._call(
+            "post",
             thread_search_url,
             request_body,
         )
@@ -359,7 +378,8 @@ class InteractionsService:
             },
         }
 
-        response = self._post(
+        response = self._call(
+            "post",
             message_search_url,
             request_body,
         )
@@ -418,7 +438,8 @@ class InteractionsService:
                 },
             },
         }
-        response = self._post(
+        response = self._call(
+            "post",
             channel_search_url,
             request_body,
         )
@@ -453,7 +474,8 @@ class InteractionsService:
                 "events": event_query,
             },
         }
-        response = self._post(
+        response = self._call(
+            "post",
             thread_search_url,
             request_body,
         )
