@@ -341,6 +341,7 @@ class LLMTokenBreakdown(CostDetail):
 
     prompt_tokens: int
     completion_tokens: int
+    reasoning_tokens: Optional[int] = None
 
 
 class LangChainRun(CostDetail):
