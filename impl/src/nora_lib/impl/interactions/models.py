@@ -203,6 +203,7 @@ class Thread(BaseModel):
     channel_id: str
     surface: Surface
     status: ThreadStatus
+    name: Optional[str] = None
 
 
 @deprecated("Use Event instead")
