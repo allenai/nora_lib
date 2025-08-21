@@ -32,7 +32,7 @@ def agent_context_json():
         "surface": "NoraWebapp"
       },
       "pubsub": {
-        "base_url": "https://http://localhost:8080",
+        "base_url": "http://localhost:8080",
         "namespace": "local-jasond"
       },
       "tool_config": {
@@ -54,7 +54,7 @@ def agent_context_obj():
             surface=Surface.WEB,
         ),
         pubsub=PubsubAgentContext(
-            base_url="https://http://localhost:8080", namespace="local-jasond"
+            base_url="http://localhost:8080", namespace="local-jasond"
         ),
         tool_config=ToolConfigAgentContext(
             env="production",
