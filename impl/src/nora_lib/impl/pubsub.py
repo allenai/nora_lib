@@ -130,7 +130,7 @@ class PubsubService:
     @staticmethod
     def from_env() -> "PubsubService":
         return PubsubService(
-            base_url=os.getenv("PUBSUB_URL", "https://nora-pubsub.apps.allenai.org"),
+            base_url=os.getenv("PUBSUB_URL", "http://localhost:8080"),
             namespace=os.getenv("PUBSUB_NAMESPACE", os.getenv("ENV", "prod")),
         )
 
