@@ -561,7 +561,7 @@ class InteractionsService:
         """Load the configuration based on the environment."""
         url = os.getenv(
             "INTERACTION_STORE_URL",
-            "https://http://localhost:8090",
+            "http://localhost:8090",
         )
         token = os.getenv(
             "INTERACTION_STORE_TOKEN",
