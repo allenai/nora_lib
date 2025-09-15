@@ -42,7 +42,9 @@ class InteractionsService:
         if token:
             self.auth = BearerAuth(token)
 
-    def _call(self, method: str, url: str, json: Dict[str, Any]) -> Response:
+    def _call(
+        self, method: str, url: str, json: Optional[Dict[str, Any]] = None
+    ) -> Response:
         return requests.request(
             method=method,
             url=url,
@@ -136,11 +138,7 @@ class InteractionsService:
         - All annotations on messages in the thread
         """
         thread_url = f"{self.base_url}/interaction/v1/thread/{thread_id}"
-        response = self._call(
-            method="delete",
-            url=thread_url,
-            json={},
-        )
+        response = self._call("delete", thread_url)
         response.raise_for_status()
 
     def save_message_reaction(
