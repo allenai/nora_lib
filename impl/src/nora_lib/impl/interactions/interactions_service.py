@@ -1,29 +1,26 @@
-from datetime import datetime, timezone
+import json
 import logging
+import os
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-import requests
-from typing import Optional, List
-import json
-import os
 import boto3
+import requests
 from requests import Response
 from requests.auth import AuthBase
-from aws_requests_auth.aws_auth import AWSRequestsAuth
-from typing import Dict, Any
 
 from nora_lib.impl.interactions.models import (
     AnnotationBatch,
-    StepCost,
     Event,
     EventType,
     Message,
     ReturnedMessage,
-    ReturnedEvent,
+    StepCost,
     Thread,
     ThreadRelationsResponse,
-    VirtualThread,
     ThreadStatus,
+    VirtualThread,
 )
 
 
@@ -127,6 +124,22 @@ class InteractionsService:
             "post",
             thread_url,
             thread.model_dump(),
+        )
+        response.raise_for_status()
+
+    def delete_thread(self, thread_id: str) -> None:
+        """
+        Delete a thread and all its associated data from the Interactions API.
+        This performs a hard delete with cascade to remove:
+        - All messages in the thread
+        - All events associated with the thread or its messages
+        - All annotations on messages in the thread
+        """
+        thread_url = f"{self.base_url}/interaction/v1/thread/{thread_id}"
+        response = self._call(
+            method="delete",
+            url=thread_url,
+            json={},
         )
         response.raise_for_status()
 
@@ -270,7 +283,7 @@ class InteractionsService:
 
         return res
 
-    def get_event(self, event_id: str) -> ReturnedEvent:
+    def get_event(self, event_id: str) -> Event:
         """Fetch an event from the Interactions API"""
         event_url = f"{self.base_url}/interaction/v1/search/event"
         request_body = {
@@ -283,7 +296,7 @@ class InteractionsService:
         )
         response.raise_for_status()
         res_dict = response.json()["events"][0]
-        res = ReturnedEvent.model_validate(res_dict)
+        res = Event.model_validate(res_dict)
         return res
 
     def fetch_all_threads_by_channel(
