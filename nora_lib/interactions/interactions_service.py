@@ -300,6 +300,31 @@ class InteractionsService:
         response.raise_for_status()
         return response.json()
 
+    def fetch_events_for_messages_in_thread(
+        self,
+        thread_id: str,
+        event_types: List[str],
+    ) -> dict:
+        """Fetch events for the messages in a thread from the Interactions API"""
+        message_search_url = f"{self.base_url}/interaction/v1/search/thread"
+        request_body = {
+            "id": thread_id,
+            "relations": {
+                "messages": {
+                    "relations": {"events": {"filter": {"type": event_types}}},
+                },
+            },
+        }
+
+        response = requests.post(
+            message_search_url,
+            json=request_body,
+            headers=self.headers,
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
+        return response.json
+
     def fetch_all_by_channel(
         self,
         channel_id: str,
