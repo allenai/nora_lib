@@ -93,20 +93,36 @@ class Message(BaseModel):
 
 
 class Event(BaseModel):
-    """event object to be sent to the interactions service; requires association with a message, thread or channel id"""
+    """
+    event object to be sent to the interactions service; requires association with a message, thread or channel id
+    this is also what is returned from the interactions service when we request an event
+    """
 
     event_id: Optional[str] = None
     type: str
     actor_id: UUID = Field(
         description="identifies actor writing the event to the interaction service"
     )
-    timestamp: datetime
+    # When this appears in an instance we save to the interaction store, it is
+    # currently saved in the ts column of the event table.
+    # When this appears in an instance we retrieved from the interaction store, it
+    # is based on the value of the created_at column of the event table.
+    # Do not depend on this field or the ts column. We intend to deprecate the field
+    # and drop the ts column, see https://github.com/allenai/nora-issues/issues/1969.
+    timestamp: Annotated[datetime, Field(deprecated=True)]
     text: Optional[str] = None
     data: dict = Field(default_factory=dict)
     message_id: Optional[str] = None
     thread_id: Optional[str] = None
     channel_id: Optional[str] = None
     surface: Optional[Surface] = None
+    # Should only be populated in an instance we retrieved from the interaction store.
+    # If it is populated in an instance we save to the interaction store, it will be ignored.
+    created_at: Optional[datetime] = None
+    # Should only be populated in an instance we retrieved from the interaction store
+    # (but won't necessarily always be populated in an instance we retrieved).
+    # If it is populated in an instance we save to the interaction store, it will be ignored.
+    updated_at: Optional[datetime] = None
 
     @field_serializer("actor_id")
     def serialize_actor_id(self, actor_id: UUID):
@@ -115,6 +131,13 @@ class Event(BaseModel):
     @field_serializer("timestamp")
     def serialize_timestamp(self, timestamp: datetime):
         return timestamp.isoformat()
+
+    @field_serializer("created_at", "updated_at")
+    def serialize_optional_ts(self, maybe_ts: Optional[datetime]):
+        if maybe_ts is not None:
+            return maybe_ts.isoformat()
+        else:
+            return json.dumps(maybe_ts)
 
     @staticmethod
     def from_returned_event(event: "ReturnedEvent") -> "Event":
@@ -131,6 +154,8 @@ class Event(BaseModel):
             message_id=event.message_id,
             thread_id=event.thread_id,
             channel_id=event.channel_id,
+            created_at=event.created_at,
+            updated_at=event.updated_at,
         )
 
 
