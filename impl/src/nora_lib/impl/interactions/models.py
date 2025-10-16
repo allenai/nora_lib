@@ -137,7 +137,7 @@ class Event(BaseModel):
         if maybe_ts is not None:
             return maybe_ts.isoformat()
         else:
-            return json.dumps(maybe_ts)
+            return None
 
     @staticmethod
     def from_returned_event(event: "ReturnedEvent") -> "Event":
