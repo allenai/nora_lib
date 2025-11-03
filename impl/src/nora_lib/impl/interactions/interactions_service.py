@@ -44,7 +44,7 @@ class RetryConfig:
     delay: int = 1
     max_delay: Optional[int] = None
     backoff: int = 2
-    jitter: Union[int, Tuple[int, int]] = (1,2)
+    jitter: Union[int, Tuple[int, int]] = (1, 2)
 
 
 class InteractionsService:
@@ -58,13 +58,14 @@ class InteractionsService:
         timeout: int = 30,
         token: Optional[str] = None,
         auth: Optional[AuthBase] = None,
-        retry_config: RetryConfig = RetryConfig()
+        retry_config: RetryConfig = RetryConfig(),
     ) -> None:
         self.base_url = base_url
         self.timeout = timeout
         self.auth = auth
         if token:
             self.auth = BearerAuth(token)
+        self.retry_config = retry_config
 
     def _call(
         self, method: str, url: str, json: Optional[Dict[str, Any]] = None
