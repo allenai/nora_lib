@@ -10,6 +10,7 @@ import boto3
 import requests
 from requests import Response
 from requests.auth import AuthBase
+from retry import retry
 
 from nora_lib.impl.interactions.models import (
     AnnotationBatch,
