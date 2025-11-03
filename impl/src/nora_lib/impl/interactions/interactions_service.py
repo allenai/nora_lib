@@ -1,8 +1,9 @@
 import json
 import logging
 import os
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 from uuid import UUID
 
 import boto3
@@ -24,6 +25,28 @@ from nora_lib.impl.interactions.models import (
 )
 
 
+class RetryableInteractionStoreException(Exception):
+    # We'll use this to indicate which requests can be retried.
+    def __init__(self, message: str, response: Response):
+        super().__init__(message)
+        # Carry this along in case our last try fails.
+        self.response = response
+
+
+@dataclass
+class RetryConfig:
+    # By default, we won't retry (so 1 try total).
+    # All the other defaults are to make it so that
+    # if we do retry (changing 'tries'), and don't change
+    # anything else, we retry with exponential backoff
+    # and some jitter.
+    tries: int = 1
+    delay: int = 1
+    max_delay: Optional[int] = None
+    backoff: int = 2
+    jitter: Union[int, Tuple[int, int]] = (1,2)
+
+
 class InteractionsService:
     """
     Service which saves interactions to the Interactions API
@@ -35,6 +58,7 @@ class InteractionsService:
         timeout: int = 30,
         token: Optional[str] = None,
         auth: Optional[AuthBase] = None,
+        retry_config: RetryConfig = RetryConfig()
     ) -> None:
         self.base_url = base_url
         self.timeout = timeout
@@ -45,13 +69,37 @@ class InteractionsService:
     def _call(
         self, method: str, url: str, json: Optional[Dict[str, Any]] = None
     ) -> Response:
-        return requests.request(
-            method=method,
-            url=url,
-            json=json,
-            auth=self.auth,
-            timeout=self.timeout,
+
+        @retry(
+            RetryableInteractionStoreException,
+            tries=self.retry_config.tries,
+            delay=self.retry_config.delay,
+            max_delay=self.retry_config.max_delay,
+            backoff=self.retry_config.backoff,
+            jitter=self.retry_config.jitter,
         )
+        def call_helper():
+            response = requests.request(
+                method=method,
+                url=url,
+                json=json,
+                auth=self.auth,
+                timeout=self.timeout,
+            )
+            if response.status_code >= 500:
+                raise RetryableInteractionStoreException(
+                    f"Encountered a retryable exception, status code {response.status_code}",
+                    response,
+                )
+            else:
+                return response
+
+        try:
+            return call_helper()
+        except RetryableInteractionStoreException as exc:
+            # If our last try failed, return the response and let the caller decide
+            # what to do with it.
+            return exc.response
 
     def save_message(
         self, message: Message, virtual_thread_id: Optional[str] = None
