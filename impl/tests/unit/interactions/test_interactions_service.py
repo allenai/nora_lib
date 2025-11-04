@@ -57,7 +57,7 @@ class TestInteractionsService(unittest.TestCase):
         event_out = iservice.get_event(event_id_success)
         self.assertEqual(event_in, event_out)
         # just one call
-        req_mock.assert_has_calls(TestInteractionsService._mk_expected_calls(event_id_success, num_calls=1))
+        req_mock.mock_calls == TestInteractionsService._mk_expected_calls(event_id_success, num_calls=1)
         req_mock.reset_mock()
 
         # Suppose the first try is not successful
@@ -68,8 +68,8 @@ class TestInteractionsService(unittest.TestCase):
                 iservice.get_event(event_id_failure)
             # Make sure the right status code is getting plumbed through
             self.assertIn(str(error_status), str(exc.exception))
-            # stop at one call
-            req_mock.assert_has_calls(TestInteractionsService._mk_expected_calls(event_id_failure, num_calls=1))
+            # still just one call
+            req_mock.mock_calls == TestInteractionsService._mk_expected_calls(event_id_failure, num_calls=1)
             req_mock.reset_mock()
 
     @patch("requests.request")
@@ -104,7 +104,7 @@ class TestInteractionsService(unittest.TestCase):
 
             # double check we called request() the expected number of times
             # (all failures plus one success)
-            req_mock.assert_has_calls(TestInteractionsService._mk_expected_calls(event_id_success, num_calls=num_failures + 1))
+            req_mock.mock_calls == TestInteractionsService._mk_expected_calls(event_id_success, num_calls=num_failures + 1)
             req_mock.reset_mock()
 
         # even if we have a success coming up, if we hit a non-retryable error first,
@@ -118,7 +118,7 @@ class TestInteractionsService(unittest.TestCase):
             iservice.get_event(event_id_non_retryable)
         self.assertIn("400", str(exc3.exception))
         # just one call
-        req_mock.assert_has_calls(TestInteractionsService._mk_expected_calls(event_id_non_retryable, num_calls=1))
+        req_mock.mock_calls == TestInteractionsService._mk_expected_calls(event_id_non_retryable, num_calls=1)
         req_mock.reset_mock()
 
         # if we get to 3 failures, we won't succeed
@@ -132,6 +132,6 @@ class TestInteractionsService(unittest.TestCase):
         with self.assertRaises(HTTPError) as exc4:
             iservice.get_event(event_id_exhaust_failures)
         self.assertIn("500", str(exc4.exception))
-        # stop at three calls
-        req_mock.assert_has_calls(TestInteractionsService._mk_expected_calls(event_id_exhaust_failures, num_calls=3))
+        # check we stopped at three calls
+        req_mock.mock_calls == TestInteractionsService._mk_expected_calls(event_id_exhaust_failures, num_calls=3)
         req_mock.reset_mock()
