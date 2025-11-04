@@ -38,7 +38,7 @@ class TestInteractionsService(unittest.TestCase):
         for error_status in [500, 501, 400]:
             req_mock.side_effect = [mk_response(error_status)]
             with self.assertRaises(HTTPError) as exc:
-                event_out = iservice.get_event("hi2")
+                iservice.get_event("hi2")
             # Make sure the right status code is getting plumbed through
             self.assertIn(str(error_status), str(exc.exception))
 
