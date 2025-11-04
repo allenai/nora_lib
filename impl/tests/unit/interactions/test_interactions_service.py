@@ -133,5 +133,5 @@ class TestInteractionsService(unittest.TestCase):
             iservice.get_event(event_id_exhaust_failures)
         self.assertIn("500", str(exc4.exception))
         # check we stopped at three calls
-        self.assertEqual(req_mock.mock_calls, TestInteractionsService._mk_expected_calls(event_id_exhaust_failures, num_calls=2))
+        self.assertEqual(req_mock.mock_calls, TestInteractionsService._mk_expected_calls(event_id_exhaust_failures, num_calls=3))
         req_mock.reset_mock()
