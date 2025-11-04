@@ -173,6 +173,9 @@ class EventType(Enum):
     # Marks a thread forked from Slack to Web
     THREAD_FORK = "thread_fork"
 
+    # Mark that a thread has been shared with other users
+    THREAD_SHARED = "thread_shared"
+
     # Cost Reporting
     STEP_COST = "step_cost"
     STEP_PROGRESS = "step_progress"
