@@ -25,7 +25,7 @@ class TestInteractionsService(unittest.TestCase):
         def mk_response(status_code):
             resp = Response()
             resp.status_code = status_code
-            resp.json = MagicMock(return_value = {"events": [event_in]})
+            resp.json = MagicMock(return_value = {"events": [event_in]})  # type: ignore
             return resp
 
         # Since we haven't changed the retry config, we only have one try.
@@ -60,7 +60,7 @@ class TestInteractionsService(unittest.TestCase):
             resp = Response()
             resp.status_code = status_code
             if event is not None:
-                resp.json = MagicMock(return_value = {"events": [event]})
+                resp.json = MagicMock(return_value = {"events": [event]})  # type: ignore
             return resp
 
         # since we have 3 tries in this particular test's retry config,
