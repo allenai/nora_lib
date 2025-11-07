@@ -11,7 +11,7 @@ import os
 from typing import Generic, Type
 from abc import ABC, abstractmethod
 
-from nora_lib.tasks.models import AsyncTaskState, R, TASK_STATUSES
+from nora_lib.tasks.models import AsyncTaskState, R, TASK_STATUSES, TaskStatus
 
 
 class NoSuchTaskException(Exception):
@@ -38,7 +38,7 @@ class IStateManager(ABC, Generic[R]):
 
     def save_result(self, task_id: str, task_result: R) -> None:
         state = self.read_state(task_id)
-        state.task_status = TASK_STATUSES["COMPLETED"]
+        state.task_status = TaskStatus.COMPLETED
         state.task_result = task_result
         self.write_state(state)
 
