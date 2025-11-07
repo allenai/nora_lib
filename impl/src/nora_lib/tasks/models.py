@@ -10,9 +10,9 @@ class TaskStatus(str, Enum):
     """Valid statuses for async tasks."""
 
     STARTED = "STARTED"
-    FAILED = "FAILED"
+    FAILED = "FAILED" # this process had an error, but thread can continue
     COMPLETED = "COMPLETED"
-    TERMINATED = "TERMINATED"
+    TERMINATED = "TERMINATED" # backing process has terminated, thread cannot continue
 
 
 # Deprecated: Use TaskStatus enum instead
