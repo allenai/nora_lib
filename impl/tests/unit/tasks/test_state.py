@@ -3,7 +3,7 @@ import unittest
 
 from pydantic import BaseModel, Field
 
-from nora_lib.tasks.models import AsyncTaskState, TASK_STATUSES
+from nora_lib.tasks.models import AsyncTaskState, TASK_STATUSES, TaskStatus
 from nora_lib.tasks.state import NoSuchTaskException, StateManager
 
 
@@ -23,7 +23,7 @@ class TestState(unittest.TestCase):
             state = MyAsyncTaskState(
                 task_id="asdf",
                 estimated_time="40 days and 40 nights",
-                task_status="STARTED",
+                task_status=TaskStatus.STARTED,
                 task_result=None,
                 extra_state={"foo": "bar"},
             )
@@ -44,7 +44,7 @@ class TestState(unittest.TestCase):
             state = MyAsyncTaskState(
                 task_id="asdf",
                 estimated_time="40 days and 40 nights",
-                task_status="STARTED",
+                task_status=TaskStatus.STARTED,
                 task_result=None,
                 extra_state={"foo": "bar"},
             )
@@ -61,7 +61,7 @@ class TestState(unittest.TestCase):
             state = MyAsyncTaskState(
                 task_id="asdf",
                 estimated_time="40 days and 40 nights",
-                task_status="STARTED",
+                task_status=TaskStatus.STARTED,
                 task_result=None,
                 extra_state={"foo": "bar"},
             )
@@ -71,7 +71,7 @@ class TestState(unittest.TestCase):
             manager.save_result(state.task_id, result)
             fetched_state = manager.read_state("asdf")
 
-            state.task_status = TASK_STATUSES["COMPLETED"]
+            state.task_status = TaskStatus.COMPLETED
             state.task_result = result
 
             self.assertEqual(state, fetched_state)
