@@ -204,6 +204,9 @@ class EventType(Enum):
     WIDGET_PAPER_FINDER_PAPER_FEEDBACK = "widget_paper_finder_paper_feedback"
     WIDGET_PAPER_FINDER_PAPER_REACTION = "widget_paper_finder_paper_reaction"
 
+    # Thread has been terminated and cannot continue
+    THREAD_TERMINATED = "thread_terminated"
+
     # Table widget events
     UI_INTERACTION = "ui_interaction"
     UI_STATE = "ui_state"
