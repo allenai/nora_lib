@@ -204,6 +204,11 @@ class EventType(Enum):
     WIDGET_PAPER_FINDER_PAPER_FEEDBACK = "widget_paper_finder_paper_feedback"
     WIDGET_PAPER_FINDER_PAPER_REACTION = "widget_paper_finder_paper_reaction"
 
+    # Task events
+    TASK = "task"
+    TASK_STATUS_UPDATE = "task_status_update"
+    TASK_ARTIFACT_UPDATE = "task_artifact_update"
+
     # Thread has been terminated and cannot continue
     THREAD_TERMINATED = "thread_terminated"
 
