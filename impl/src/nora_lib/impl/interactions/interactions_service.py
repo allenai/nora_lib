@@ -14,6 +14,7 @@ from retry import retry
 
 from nora_lib.impl.interactions.models import (
     AnnotationBatch,
+    ContextChannelResponse,
     Event,
     EventType,
     Message,
@@ -446,6 +447,16 @@ class InteractionsService:
         )
         response.raise_for_status()
         return response.json()
+
+    def get_channel_by_context(self, context_id: str) -> ContextChannelResponse:
+        """
+        Fetch a channel by a context ID. The context_id may be the ID of a
+        channel, thread, message, or event.
+        """
+        url = f"{self.base_url}/interaction/v1/channel/by-context/{context_id}"
+        response = self._call("get", url)
+        response.raise_for_status()
+        return ContextChannelResponse.model_validate(response.json())
 
     def fetch_all_by_channel(
         self,

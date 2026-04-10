@@ -303,6 +303,14 @@ class ReturnedAgentContextMessage(BaseModel):
     events: List[ReturnedAgentContextEvent] = Field(default_factory=list)
 
 
+class ContextChannelResponse(BaseModel):
+    """Channel format returned by the interaction service"""
+
+    channel_id: str
+    surface: str
+    owning_actor_id: str
+
+
 class ThreadRelationsResponse(BaseModel):
     """Thread format returned by interaction service for thread relations in a search response"""
 
