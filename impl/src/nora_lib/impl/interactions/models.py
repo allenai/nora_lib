@@ -234,6 +234,16 @@ class ThreadForkEventData(BaseModel):
     previous_message_id: str
 
 
+class Channel(BaseModel):
+    channel_id: str
+    surface: Surface
+    owning_actor_id: UUID
+
+    @field_serializer("owning_actor_id")
+    def serialize_owning_actor_id(self, owning_actor_id: UUID):
+        return str(owning_actor_id)
+
+
 class Thread(BaseModel):
     thread_id: str
     channel_id: str
@@ -302,13 +312,6 @@ class ReturnedAgentContextMessage(BaseModel):
     annotated_text: Optional[str] = None
     events: List[ReturnedAgentContextEvent] = Field(default_factory=list)
 
-
-class ContextChannelResponse(BaseModel):
-    """Channel format returned by the interaction service"""
-
-    channel_id: str
-    surface: str
-    owning_actor_id: str
 
 
 class ThreadRelationsResponse(BaseModel):

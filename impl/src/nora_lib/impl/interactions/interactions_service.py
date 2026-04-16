@@ -14,7 +14,7 @@ from retry import retry
 
 from nora_lib.impl.interactions.models import (
     AnnotationBatch,
-    ContextChannelResponse,
+    Channel,
     Event,
     EventType,
     Message,
@@ -169,6 +169,16 @@ class InteractionsService:
             # If this is a new event, then we should have gotten back its ID.
             event.event_id = response_message["event_id"]
         return event.event_id
+
+    def save_channel(self, channel: Channel) -> None:
+        """Save a channel to the Interactions API"""
+        channel_url = f"{self.base_url}/interaction/v1/channel"
+        response = self._call(
+            "post",
+            channel_url,
+            channel.model_dump(),
+        )
+        response.raise_for_status()
 
     def save_thread(self, thread: Thread) -> None:
         """Save a thread to the Interactions API"""
@@ -448,7 +458,14 @@ class InteractionsService:
         response.raise_for_status()
         return response.json()
 
-    def get_channel_by_context(self, context_id: str) -> ContextChannelResponse:
+    def get_channel(self, channel_id: str) -> Channel:
+        """Fetch a channel by ID"""
+        url = f"{self.base_url}/interaction/v1/search/channel"
+        response = self._call("post", url, {"id": channel_id})
+        response.raise_for_status()
+        return Channel.model_validate(response.json())
+
+    def get_channel_by_context(self, context_id: str) -> Channel:
         """
         Fetch a channel by a context ID. The context_id may be the ID of a
         channel, thread, message, or event.
@@ -456,7 +473,7 @@ class InteractionsService:
         url = f"{self.base_url}/interaction/v1/channel/by-context/{context_id}"
         response = self._call("get", url)
         response.raise_for_status()
-        return ContextChannelResponse.model_validate(response.json())
+        return Channel.model_validate(response.json())
 
     def fetch_all_by_channel(
         self,
