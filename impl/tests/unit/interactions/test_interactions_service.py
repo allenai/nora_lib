@@ -8,7 +8,7 @@ from nora_lib.impl.interactions.interactions_service import (
     InteractionsService,
     RetryConfig,
 )
-from nora_lib.impl.interactions.models import Event
+from nora_lib.impl.interactions.models import Channel, Event, Surface
 
 
 class TestInteractionsService(unittest.TestCase):
@@ -167,3 +167,130 @@ class TestInteractionsService(unittest.TestCase):
             ),
         )
         req_mock.reset_mock()
+
+    @staticmethod
+    def _mk_channel_response(status_code, channel_dict=None):
+        resp = Response()
+        resp.status_code = status_code
+        if channel_dict is not None:
+            resp.json = MagicMock(return_value=channel_dict)  # type: ignore
+        return resp
+
+    @patch("requests.request")
+    def test_save_channel(self, req_mock):
+        iservice = InteractionsService("somewhere")
+        channel = Channel(
+            channel_id="c-1", surface=Surface.WEB, owning_actor_id="actor-1"
+        )
+
+        # Happy path
+        req_mock.side_effect = [
+            TestInteractionsService._mk_channel_response(200, None)
+        ]
+        self.assertIsNone(iservice.save_channel(channel))
+        self.assertEqual(
+            req_mock.mock_calls,
+            [
+                call(
+                    method="post",
+                    url="somewhere/interaction/v1/channel",
+                    json=channel.model_dump(),
+                    auth=None,
+                    timeout=30,
+                )
+            ],
+        )
+        req_mock.reset_mock()
+
+        # Non-retryable error should propagate
+        req_mock.side_effect = [
+            TestInteractionsService._mk_channel_response(400, None)
+        ]
+        with self.assertRaises(HTTPError) as exc:
+            iservice.save_channel(channel)
+        self.assertIn("400", str(exc.exception))
+
+    @patch("requests.request")
+    def test_get_channel(self, req_mock):
+        iservice = InteractionsService("somewhere")
+        channel_dict = {
+            "channel_id": "c-1",
+            "surface": Surface.WEB.value,
+            "owning_actor_id": "actor-1",
+        }
+
+        # get_channel unwraps the response from a {"channel": ...} envelope.
+        req_mock.side_effect = [
+            TestInteractionsService._mk_channel_response(200, {"channel": channel_dict})
+        ]
+        fetched = iservice.get_channel("c-1")
+        self.assertEqual(
+            fetched,
+            Channel(
+                channel_id="c-1", surface=Surface.WEB, owning_actor_id="actor-1"
+            ),
+        )
+        self.assertEqual(
+            req_mock.mock_calls,
+            [
+                call(
+                    method="post",
+                    url="somewhere/interaction/v1/search/channel",
+                    json={"id": "c-1"},
+                    auth=None,
+                    timeout=30,
+                )
+            ],
+        )
+        req_mock.reset_mock()
+
+        # Error status should propagate
+        req_mock.side_effect = [
+            TestInteractionsService._mk_channel_response(404, None)
+        ]
+        with self.assertRaises(HTTPError) as exc:
+            iservice.get_channel("missing")
+        self.assertIn("404", str(exc.exception))
+
+    @patch("requests.request")
+    def test_get_channel_by_context(self, req_mock):
+        iservice = InteractionsService("somewhere")
+        channel_dict = {
+            "channel_id": "c-1",
+            "surface": Surface.WEB.value,
+            "owning_actor_id": "actor-1",
+        }
+
+        # Context id can be any of channel/thread/message/event id; service always
+        # GETs the same endpoint shape.
+        req_mock.side_effect = [
+            TestInteractionsService._mk_channel_response(200, channel_dict)
+        ]
+        fetched = iservice.get_channel_by_context("thread-1")
+        self.assertEqual(
+            fetched,
+            Channel(
+                channel_id="c-1", surface=Surface.WEB, owning_actor_id="actor-1"
+            ),
+        )
+        self.assertEqual(
+            req_mock.mock_calls,
+            [
+                call(
+                    method="get",
+                    url="somewhere/interaction/v1/channel/by-context/thread-1",
+                    json=None,
+                    auth=None,
+                    timeout=30,
+                )
+            ],
+        )
+        req_mock.reset_mock()
+
+        # Error status should propagate
+        req_mock.side_effect = [
+            TestInteractionsService._mk_channel_response(404, None)
+        ]
+        with self.assertRaises(HTTPError) as exc:
+            iservice.get_channel_by_context("missing")
+        self.assertIn("404", str(exc.exception))
