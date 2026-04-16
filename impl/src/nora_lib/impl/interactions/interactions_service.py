@@ -463,7 +463,8 @@ class InteractionsService:
         url = f"{self.base_url}/interaction/v1/search/channel"
         response = self._call("post", url, {"id": channel_id})
         response.raise_for_status()
-        return Channel.model_validate(response.json())
+        channel_data = response.json().get("channel")
+        return Channel.model_validate(channel_data)
 
     def get_channel_by_context(self, context_id: str) -> Channel:
         """
@@ -473,7 +474,8 @@ class InteractionsService:
         url = f"{self.base_url}/interaction/v1/channel/by-context/{context_id}"
         response = self._call("get", url)
         response.raise_for_status()
-        return Channel.model_validate(response.json())
+        channel_data = response.json()
+        return Channel.model_validate(channel_data)
 
     def fetch_all_by_channel(
         self,
