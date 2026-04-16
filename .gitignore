@@ -144,3 +144,7 @@ cython_debug/
 
 # MacOS hidden files
 .DS_Store
+
+# Claude Code
+.claude/
+CLAUDE.md
