@@ -237,11 +237,7 @@ class ThreadForkEventData(BaseModel):
 class Channel(BaseModel):
     channel_id: str
     surface: Surface
-    owning_actor_id: UUID
-
-    @field_serializer("owning_actor_id")
-    def serialize_owning_actor_id(self, owning_actor_id: UUID):
-        return str(owning_actor_id)
+    owning_actor_id: str
 
 
 class Thread(BaseModel):
