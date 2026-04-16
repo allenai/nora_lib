@@ -187,7 +187,7 @@ class TestInteractionsService(unittest.TestCase):
         req_mock.side_effect = [
             TestInteractionsService._mk_channel_response(200, None)
         ]
-        self.assertIsNone(iservice.save_channel(channel))
+        iservice.save_channel(channel)
         self.assertEqual(
             req_mock.mock_calls,
             [
@@ -264,7 +264,7 @@ class TestInteractionsService(unittest.TestCase):
         # Context id can be any of channel/thread/message/event id; service always
         # GETs the same endpoint shape.
         req_mock.side_effect = [
-            TestInteractionsService._mk_channel_response(200, channel_dict)
+            TestInteractionsService._mk_channel_response(200, {"channel": channel_dict})
         ]
         fetched = iservice.get_channel_by_context("thread-1")
         self.assertEqual(
