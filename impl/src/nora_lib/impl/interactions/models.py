@@ -309,7 +309,6 @@ class ReturnedAgentContextMessage(BaseModel):
     events: List[ReturnedAgentContextEvent] = Field(default_factory=list)
 
 
-
 class ThreadRelationsResponse(BaseModel):
     """Thread format returned by interaction service for thread relations in a search response"""
 
