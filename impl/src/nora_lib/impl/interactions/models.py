@@ -234,6 +234,12 @@ class ThreadForkEventData(BaseModel):
     previous_message_id: str
 
 
+class Channel(BaseModel):
+    channel_id: str
+    surface: Surface
+    owning_actor_id: str
+
+
 class Thread(BaseModel):
     thread_id: str
     channel_id: str
