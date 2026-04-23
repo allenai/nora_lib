@@ -458,15 +458,18 @@ class InteractionsService:
         response.raise_for_status()
         return response.json()
 
-    def get_channel(self, channel_id: str) -> Channel:
+    def get_channel(self, channel_id: str) -> Channel | None:
         """Fetch a channel by ID"""
         url = f"{self.base_url}/interaction/v1/search/channel"
         response = self._call("post", url, {"id": channel_id})
         response.raise_for_status()
-        channel_data = response.json()["channel"]
+        data = response.json()
+        if "channel" not in data:
+            return None
+        channel_data = data["channel"]
         return Channel.model_validate(channel_data)
 
-    def get_channel_by_context(self, context_id: str) -> Channel:
+    def get_channel_by_context(self, context_id: str) -> Channel | None:
         """
         Fetch a channel by a context ID. The context_id may be the ID of a
         channel, thread, message, or event.
@@ -474,7 +477,10 @@ class InteractionsService:
         url = f"{self.base_url}/interaction/v1/channel/by-context/{context_id}"
         response = self._call("get", url)
         response.raise_for_status()
-        channel_data = response.json()["channel"]
+        data = response.json()
+        if "channel" not in data:
+            return None
+        channel_data = data["channel"]
         return Channel.model_validate(channel_data)
 
     def fetch_all_by_channel(
