@@ -458,7 +458,7 @@ class InteractionsService:
         response.raise_for_status()
         return response.json()
 
-    def get_channel(self, channel_id: str) -> Channel | None:
+    def get_channel(self, channel_id: str) -> Optional[Channel]:
         """Fetch a channel by ID"""
         url = f"{self.base_url}/interaction/v1/search/channel"
         response = self._call("post", url, {"id": channel_id})
@@ -469,7 +469,7 @@ class InteractionsService:
         channel_data = data["channel"]
         return Channel.model_validate(channel_data)
 
-    def get_channel_by_context(self, context_id: str) -> Channel | None:
+    def get_channel_by_context(self, context_id: str) -> Optional[Channel]:
         """
         Fetch a channel by a context ID. The context_id may be the ID of a
         channel, thread, message, or event.
