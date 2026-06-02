@@ -592,6 +592,14 @@ class InteractionsService:
             else:
                 raise e
 
+    def get_sentences_by_id(self, sentence_ids: List[str]) -> Dict[str, dict]:
+        """Fetch sentences by their IDs. Returns a mapping of sentence ID to sentence bounding boxes."""
+        joined_sentence_ids = ",".join(sentence_ids)
+        url = f"{self.base_url}/corpus/v1/vespa/publicapi/sentence/batch/idlookup?sentence_ids={joined_sentence_ids}"
+        response = self._call("get", url)
+        response.raise_for_status()
+        return response.json()
+
     @staticmethod
     def _channel_lookup_request(
         channel_id: str,
