@@ -169,11 +169,11 @@ class TestInteractionsService(unittest.TestCase):
         req_mock.reset_mock()
 
     @staticmethod
-    def _mk_channel_response(status_code, channel_dict=None):
+    def _mk_json_response(status_code, body_dict=None):
         resp = Response()
         resp.status_code = status_code
-        if channel_dict is not None:
-            resp.json = MagicMock(return_value=channel_dict)  # type: ignore
+        if body_dict is not None:
+            resp.json = MagicMock(return_value=body_dict)  # type: ignore
         return resp
 
     @patch("requests.request")
@@ -184,9 +184,7 @@ class TestInteractionsService(unittest.TestCase):
         )
 
         # Happy path
-        req_mock.side_effect = [
-            TestInteractionsService._mk_channel_response(200, None)
-        ]
+        req_mock.side_effect = [TestInteractionsService._mk_json_response(200, None)]
         iservice.save_channel(channel)
         self.assertEqual(
             req_mock.mock_calls,
@@ -203,9 +201,7 @@ class TestInteractionsService(unittest.TestCase):
         req_mock.reset_mock()
 
         # Non-retryable error should propagate
-        req_mock.side_effect = [
-            TestInteractionsService._mk_channel_response(400, None)
-        ]
+        req_mock.side_effect = [TestInteractionsService._mk_json_response(400, None)]
         with self.assertRaises(HTTPError) as exc:
             iservice.save_channel(channel)
         self.assertIn("400", str(exc.exception))
@@ -221,14 +217,12 @@ class TestInteractionsService(unittest.TestCase):
 
         # get_channel unwraps the response from a {"channel": ...} envelope.
         req_mock.side_effect = [
-            TestInteractionsService._mk_channel_response(200, {"channel": channel_dict})
+            TestInteractionsService._mk_json_response(200, {"channel": channel_dict})
         ]
         fetched = iservice.get_channel("c-1")
         self.assertEqual(
             fetched,
-            Channel(
-                channel_id="c-1", surface=Surface.WEB, owning_actor_id="actor-1"
-            ),
+            Channel(channel_id="c-1", surface=Surface.WEB, owning_actor_id="actor-1"),
         )
         self.assertEqual(
             req_mock.mock_calls,
@@ -245,11 +239,55 @@ class TestInteractionsService(unittest.TestCase):
         req_mock.reset_mock()
 
         # Error status should propagate
-        req_mock.side_effect = [
-            TestInteractionsService._mk_channel_response(404, None)
-        ]
+        req_mock.side_effect = [TestInteractionsService._mk_json_response(404, None)]
         with self.assertRaises(HTTPError) as exc:
             iservice.get_channel("missing")
+        self.assertIn("404", str(exc.exception))
+
+    @patch("requests.request")
+    def test_get_sentences_by_id(self, req_mock):
+        iservice = InteractionsService("somewhere")
+        sentences = {
+            "s-1": {
+                "bboxs": [
+                    {"page": 18, "top": 598.4, "left": 70.9, "h": 13.1, "w": 218.7}
+                ]
+            },
+            "s-2": {
+                "bboxs": [
+                    {"page": 18, "top": 611.9, "left": 70.9, "h": 13.1, "w": 218.3}
+                ]
+            },
+        }
+
+        # Happy path: ids are comma-joined into the query string and the JSON
+        # body is returned as-is.
+        req_mock.side_effect = [
+            TestInteractionsService._mk_json_response(200, sentences)
+        ]
+        fetched = iservice.get_sentences_by_id(["s-1", "s-2"])
+        self.assertEqual(fetched, sentences)
+        self.assertEqual(
+            req_mock.mock_calls,
+            [
+                call(
+                    method="get",
+                    url=(
+                        "somewhere/corpus/v1/vespa/publicapi/sentence/batch/"
+                        "idlookup?sentence_ids=s-1,s-2"
+                    ),
+                    json=None,
+                    auth=None,
+                    timeout=30,
+                )
+            ],
+        )
+        req_mock.reset_mock()
+
+        # Error status should propagate
+        req_mock.side_effect = [TestInteractionsService._mk_json_response(404, None)]
+        with self.assertRaises(HTTPError) as exc:
+            iservice.get_sentences_by_id(["missing"])
         self.assertIn("404", str(exc.exception))
 
     @patch("requests.request")
@@ -264,14 +302,12 @@ class TestInteractionsService(unittest.TestCase):
         # Context id can be any of channel/thread/message/event id; service always
         # GETs the same endpoint shape.
         req_mock.side_effect = [
-            TestInteractionsService._mk_channel_response(200, {"channel": channel_dict})
+            TestInteractionsService._mk_json_response(200, {"channel": channel_dict})
         ]
         fetched = iservice.get_channel_by_context("thread-1")
         self.assertEqual(
             fetched,
-            Channel(
-                channel_id="c-1", surface=Surface.WEB, owning_actor_id="actor-1"
-            ),
+            Channel(channel_id="c-1", surface=Surface.WEB, owning_actor_id="actor-1"),
         )
         self.assertEqual(
             req_mock.mock_calls,
@@ -288,9 +324,7 @@ class TestInteractionsService(unittest.TestCase):
         req_mock.reset_mock()
 
         # Error status should propagate
-        req_mock.side_effect = [
-            TestInteractionsService._mk_channel_response(404, None)
-        ]
+        req_mock.side_effect = [TestInteractionsService._mk_json_response(404, None)]
         with self.assertRaises(HTTPError) as exc:
             iservice.get_channel_by_context("missing")
         self.assertIn("404", str(exc.exception))
