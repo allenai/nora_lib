@@ -237,7 +237,7 @@ class ThreadForkEventData(BaseModel):
 class Channel(BaseModel):
     channel_id: str
     surface: Surface
-    owning_actor_id: str
+    owning_actor_id: Optional[str] = None
 
 
 class Thread(BaseModel):
