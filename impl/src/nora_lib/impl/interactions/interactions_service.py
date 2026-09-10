@@ -202,6 +202,17 @@ class InteractionsService:
         response = self._call("delete", thread_url)
         response.raise_for_status()
 
+    def delete_actor(self, actor_id: str) -> dict:
+        """
+        Delete all interaction data associated with an actor_id from the
+        Interactions API: messages, events, and annotations authored by the
+        actor, and unlinks any channel owned by the actor.
+        """
+        actor_url = f"{self.base_url}/interaction/v1/actor/{actor_id}"
+        response = self._call("delete", actor_url)
+        response.raise_for_status()
+        return response.json()
+
     def save_message_reaction(
         self, message_id: str, reaction: str, actor_id: UUID
     ) -> str:
