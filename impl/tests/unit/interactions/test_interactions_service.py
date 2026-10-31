@@ -169,6 +169,87 @@ class TestInteractionsService(unittest.TestCase):
         req_mock.reset_mock()
 
     @staticmethod
+    def _mk_thread_fetch_call(thread_id):
+        return call(
+            method="post",
+            url="somewhere/interaction/v1/search/thread",
+            json={
+                "id": thread_id,
+                "relations": {
+                    "messages": {
+                        "filter": None,
+                        "apply_annotations_from_actors": ["*"],
+                    },
+                    "events": {},
+                },
+            },
+            auth=None,
+            timeout=30,
+        )
+
+    @patch("retry.api.time.sleep")
+    @patch("requests.request")
+    def test_fetch_messages_and_events_for_thread_retries(self, req_mock, _sleep):
+        # Retries transient 5xx even though the client defaults to one try
+        iservice = InteractionsService("somewhere")
+        body = {"thread": {"id": "t1"}}
+        req_mock.side_effect = [
+            TestInteractionsService._mk_json_response(502),
+            TestInteractionsService._mk_json_response(500),
+            TestInteractionsService._mk_json_response(200, body),
+        ]
+        with self.assertLogs(
+            "nora_lib.impl.interactions.interactions_service", level="INFO"
+        ) as logs:
+            self.assertEqual(body, iservice.fetch_messages_and_events_for_thread("t1"))
+        self.assertEqual(
+            req_mock.mock_calls,
+            [TestInteractionsService._mk_thread_fetch_call("t1")] * 3,
+        )
+        self.assertIn("succeeded on attempt 3/3", logs.output[-1])
+        req_mock.reset_mock()
+
+        # Gives up after 3 tries, logging an error
+        req_mock.side_effect = [
+            TestInteractionsService._mk_json_response(502),
+            TestInteractionsService._mk_json_response(502),
+            TestInteractionsService._mk_json_response(503),
+            TestInteractionsService._mk_json_response(200, body),
+        ]
+        with self.assertLogs(
+            "nora_lib.impl.interactions.interactions_service", level="ERROR"
+        ) as logs:
+            with self.assertRaises(HTTPError) as exc:
+                iservice.fetch_messages_and_events_for_thread("t1")
+        self.assertIn("503", str(exc.exception))
+        self.assertEqual(len(req_mock.mock_calls), 3)
+        self.assertIn("after 3 attempts", logs.output[-1])
+        req_mock.reset_mock()
+
+        # 4xx is not retried
+        req_mock.side_effect = [
+            TestInteractionsService._mk_json_response(404),
+            TestInteractionsService._mk_json_response(200, body),
+        ]
+        with self.assertRaises(HTTPError):
+            iservice.fetch_messages_and_events_for_thread("t1")
+        self.assertEqual(len(req_mock.mock_calls), 1)
+
+    @patch("retry.api.time.sleep")
+    @patch("requests.request")
+    def test_thread_fetch_retries_do_not_change_other_calls(self, req_mock, _sleep):
+        iservice = InteractionsService("somewhere")
+        req_mock.side_effect = [
+            TestInteractionsService._mk_response(502, None),
+            TestInteractionsService._mk_response(
+                200, TestInteractionsService._mk_event("1")
+            ),
+        ]
+        with self.assertRaises(HTTPError):
+            iservice.get_event("1")
+        self.assertEqual(len(req_mock.mock_calls), 1)
+
+    @staticmethod
     def _mk_json_response(status_code, body_dict=None):
         resp = Response()
         resp.status_code = status_code

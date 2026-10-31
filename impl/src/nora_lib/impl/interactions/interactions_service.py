@@ -49,6 +49,13 @@ class RetryConfig:
     jitter: Union[int, Tuple[int, int]] = (1, 2)
 
 
+# Thread lookups gate user requests (e.g. permission checks), so a transient 5xx
+# from the Interaction Store should not fail them outright. Safe because it is a read.
+THREAD_FETCH_RETRY_CONFIG = RetryConfig(tries=3)
+
+logger = logging.getLogger(__name__)
+
+
 class InteractionsService:
     """
     Service which saves interactions to the Interactions API
@@ -70,18 +77,26 @@ class InteractionsService:
         self.retry_config = retry_config
 
     def _call(
-        self, method: str, url: str, json: Optional[Dict[str, Any]] = None
+        self,
+        method: str,
+        url: str,
+        json: Optional[Dict[str, Any]] = None,
+        retry_config: Optional[RetryConfig] = None,
     ) -> Response:
+        config = retry_config or self.retry_config
+        attempt = 0
 
         @retry(
             RetryableInteractionStoreException,
-            tries=self.retry_config.tries,
-            delay=self.retry_config.delay,
-            max_delay=self.retry_config.max_delay,
-            backoff=self.retry_config.backoff,
-            jitter=self.retry_config.jitter,
+            tries=config.tries,
+            delay=config.delay,
+            max_delay=config.max_delay,
+            backoff=config.backoff,
+            jitter=config.jitter,
         )
         def call_helper():
+            nonlocal attempt
+            attempt += 1
             response = requests.request(
                 method=method,
                 url=url,
@@ -90,19 +105,39 @@ class InteractionsService:
                 timeout=self.timeout,
             )
             if response.status_code >= 500:
+                # The retry library logs this message at WARNING before each retry.
                 raise RetryableInteractionStoreException(
-                    f"Encountered a retryable exception, status code {response.status_code}",
+                    f"Interaction Store {method.upper()} {url} returned status code "
+                    f"{response.status_code} (attempt {attempt}/{config.tries})",
                     response,
                 )
             else:
                 return response
 
         try:
-            return call_helper()
+            response = call_helper()
         except RetryableInteractionStoreException as exc:
+            if config.tries > 1:
+                logger.error(
+                    "Interaction Store %s %s still failing with status code %s "
+                    "after %d attempts; giving up",
+                    method.upper(),
+                    url,
+                    exc.response.status_code,
+                    attempt,
+                )
             # If our last try failed, return the response and let the caller decide
             # what to do with it.
             return exc.response
+        if attempt > 1:
+            logger.info(
+                "Interaction Store %s %s succeeded on attempt %d/%d",
+                method.upper(),
+                url,
+                attempt,
+                config.tries,
+            )
+        return response
 
     def save_message(
         self, message: Message, virtual_thread_id: Optional[str] = None
@@ -443,6 +478,11 @@ class InteractionsService:
             "post",
             thread_search_url,
             request_body,
+            retry_config=(
+                self.retry_config
+                if self.retry_config.tries >= THREAD_FETCH_RETRY_CONFIG.tries
+                else THREAD_FETCH_RETRY_CONFIG
+            ),
         )
         response.raise_for_status()
         return response.json()
