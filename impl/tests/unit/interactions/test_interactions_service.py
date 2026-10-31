@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime
 from uuid import uuid4
-from requests import HTTPError, Response
+from requests import ConnectionError, HTTPError, Response, Timeout
 from unittest.mock import call, patch, MagicMock
 
 from nora_lib.impl.interactions.interactions_service import (
@@ -284,6 +284,48 @@ class TestInteractionsService(unittest.TestCase):
 
     @patch("retry.api.time.sleep")
     @patch("requests.request")
+    def test_thread_fetch_preserves_unlimited_retries(self, req_mock, sleep_mock):
+        for configured_tries in (-1, -2):
+            with self.subTest(tries=configured_tries):
+                config = RetryConfig(
+                    tries=configured_tries, delay=2, backoff=1, jitter=0
+                )
+                iservice = InteractionsService("somewhere", retry_config=config)
+                body = {"thread": {"id": "t1"}}
+                req_mock.side_effect = [
+                    self._mk_json_response(502) for _ in range(4)
+                ] + [self._mk_json_response(200, body)]
+                with self.assertLogs(
+                    "nora_lib.impl.interactions.interactions_service", level="INFO"
+                ) as logs:
+                    self.assertEqual(
+                        body, iservice.fetch_messages_and_events_for_thread("t1")
+                    )
+                self.assertEqual(req_mock.call_count, 5)
+                self.assertEqual(sleep_mock.call_args_list, [call(2)] * 4)
+                self.assertEqual(config.tries, configured_tries)
+                self.assertIs(iservice.retry_config, config)
+                self.assertIn("attempt 1/unlimited", logs.output[0])
+                self.assertIn("succeeded on attempt 5/unlimited", logs.output[-1])
+                req_mock.reset_mock()
+                sleep_mock.reset_mock()
+
+    @patch("retry.api.time.sleep")
+    @patch("requests.request")
+    def test_thread_fetch_transport_errors_are_not_retried(self, req_mock, sleep_mock):
+        iservice = InteractionsService("somewhere")
+        for error in (ConnectionError("connection failed"), Timeout("timed out")):
+            with self.subTest(error=type(error).__name__):
+                req_mock.side_effect = error
+                with self.assertRaises(type(error)) as exc:
+                    iservice.fetch_messages_and_events_for_thread("t1")
+                self.assertIs(exc.exception, error)
+                req_mock.assert_called_once()
+                sleep_mock.assert_not_called()
+                req_mock.reset_mock()
+
+    @patch("retry.api.time.sleep")
+    @patch("requests.request")
     def test_retry_logs_redact_url_and_request_data(self, req_mock, _sleep):
         iservice = InteractionsService(
             "https://private-host.invalid",
@@ -317,7 +359,9 @@ class TestInteractionsService(unittest.TestCase):
                         self._mk_json_response(503),
                         self._mk_json_response(504 if exhausted else 200),
                     ]
-                    with self.assertLogs(level="INFO") as logs:
+                    with self.assertLogs(
+                        "nora_lib.impl.interactions.interactions_service", level="INFO"
+                    ) as logs:
                         response = iservice._call("get", url, {"id": "private-payload"})
                     self.assertEqual(response.status_code, 504 if exhausted else 200)
                     self.assertEqual(
@@ -327,6 +371,7 @@ class TestInteractionsService(unittest.TestCase):
                     for message in logs.output:
                         self.assertIn(f"GET {route}", message)
                         self.assertNotIn("private-", message)
+                        self.assertNotIn("<Response", message)
                     self.assertIn("attempt 1/3", logs.output[0])
                     self.assertIn("status code 502", logs.output[0])
                     self.assertIn("attempt 2/3", logs.output[1])

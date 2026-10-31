@@ -60,6 +60,7 @@ logger = logging.getLogger(__name__)
 
 def _log_route(url: str) -> str:
     # Only emit known static route names, never the host, IDs, query, or fragment.
+    # Keep in sync with the URL builders in InteractionsService below.
     route = re.search(
         r"/interaction/v1/(?:"
         r"search/(?:message|event|channel|thread)|"
@@ -91,6 +92,12 @@ class InteractionsService:
             self.auth = BearerAuth(token)
         self.retry_config = retry_config
 
+    def _thread_fetch_retry_config(self) -> RetryConfig:
+        config = self.retry_config
+        if config.tries < 0 or config.tries >= THREAD_FETCH_RETRY_CONFIG.tries:
+            return config
+        return replace(config, tries=THREAD_FETCH_RETRY_CONFIG.tries)
+
     def _call(
         self,
         method: str,
@@ -101,6 +108,7 @@ class InteractionsService:
         config = retry_config or self.retry_config
         route = _log_route(url)
         attempt = 0
+        attempt_limit = "unlimited" if config.tries < 0 else str(config.tries)
 
         @retry(
             RetryableInteractionStoreException,
@@ -109,6 +117,7 @@ class InteractionsService:
             max_delay=config.max_delay,
             backoff=config.backoff,
             jitter=config.jitter,
+            logger=logger,
         )
         def call_helper():
             nonlocal attempt
@@ -124,7 +133,7 @@ class InteractionsService:
                 # The retry library logs this message at WARNING before each retry.
                 raise RetryableInteractionStoreException(
                     f"Interaction Store {method.upper()} {route} returned status code "
-                    f"{response.status_code} (attempt {attempt}/{config.tries})",
+                    f"{response.status_code} (attempt {attempt}/{attempt_limit})",
                     response,
                 )
             else:
@@ -147,11 +156,11 @@ class InteractionsService:
             return exc.response
         if attempt > 1:
             logger.info(
-                "Interaction Store %s %s succeeded on attempt %d/%d",
+                "Interaction Store %s %s succeeded on attempt %d/%s",
                 method.upper(),
                 route,
                 attempt,
-                config.tries,
+                attempt_limit,
             )
         return response
 
@@ -476,7 +485,11 @@ class InteractionsService:
         event_type: Optional[str] = None,
         min_timestamp: Optional[str] = None,
     ) -> dict:
-        """Fetch messages and events for the given thread from the Interactions API"""
+        """Fetch thread messages and events, using at least three attempts for 5xx.
+
+        Each attempt uses the client's timeout; total duration can exceed it.
+        Connection errors and timeouts propagate immediately without retry.
+        """
         thread_search_url = f"{self.base_url}/interaction/v1/search/thread"
         message_query = {
             "filter": {"min_timestamp": min_timestamp} if min_timestamp else None,
@@ -494,11 +507,7 @@ class InteractionsService:
             "post",
             thread_search_url,
             request_body,
-            retry_config=(
-                self.retry_config
-                if self.retry_config.tries >= THREAD_FETCH_RETRY_CONFIG.tries
-                else replace(self.retry_config, tries=THREAD_FETCH_RETRY_CONFIG.tries)
-            ),
+            retry_config=self._thread_fetch_retry_config(),
         )
         response.raise_for_status()
         return response.json()
