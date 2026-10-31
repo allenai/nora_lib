@@ -1,11 +1,9 @@
 import json
 import logging
 import os
-import re
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple, Union
-from urllib.parse import urlsplit
 from uuid import UUID
 
 import boto3
@@ -55,22 +53,6 @@ class RetryConfig:
 # from the Interaction Store should not fail them outright. Safe because it is a read.
 THREAD_FETCH_RETRY_CONFIG = RetryConfig(tries=3)
 
-logger = logging.getLogger(__name__)
-
-
-def _log_route(url: str) -> str:
-    # Only emit known static route names, never the host, IDs, query, or fragment.
-    # Keep in sync with the URL builders in InteractionsService below.
-    route = re.search(
-        r"/interaction/v1/(?:"
-        r"search/(?:message|event|channel|thread)|"
-        r"channel/by-context|message|event|channel|thread|actor|annotation"
-        r")(?=/|$)|"
-        r"/corpus/v1/vespa/publicapi/sentence/batch/idlookup(?=/|$)",
-        urlsplit(url).path,
-    )
-    return route.group(0) if route else "<unknown>"
-
 
 class InteractionsService:
     """
@@ -106,9 +88,6 @@ class InteractionsService:
         retry_config: Optional[RetryConfig] = None,
     ) -> Response:
         config = retry_config or self.retry_config
-        route = _log_route(url)
-        attempt = 0
-        attempt_limit = "unlimited" if config.tries < 0 else str(config.tries)
 
         @retry(
             RetryableInteractionStoreException,
@@ -117,11 +96,8 @@ class InteractionsService:
             max_delay=config.max_delay,
             backoff=config.backoff,
             jitter=config.jitter,
-            logger=logger,
         )
         def call_helper():
-            nonlocal attempt
-            attempt += 1
             response = requests.request(
                 method=method,
                 url=url,
@@ -130,39 +106,19 @@ class InteractionsService:
                 timeout=self.timeout,
             )
             if response.status_code >= 500:
-                # The retry library logs this message at WARNING before each retry.
                 raise RetryableInteractionStoreException(
-                    f"Interaction Store {method.upper()} {route} returned status code "
-                    f"{response.status_code} (attempt {attempt}/{attempt_limit})",
+                    f"Encountered a retryable exception, status code {response.status_code}",
                     response,
                 )
             else:
                 return response
 
         try:
-            response = call_helper()
+            return call_helper()
         except RetryableInteractionStoreException as exc:
-            if config.tries > 1:
-                logger.error(
-                    "Interaction Store %s %s still failing with status code %s "
-                    "after %d attempts; giving up",
-                    method.upper(),
-                    route,
-                    exc.response.status_code,
-                    attempt,
-                )
             # If our last try failed, return the response and let the caller decide
             # what to do with it.
             return exc.response
-        if attempt > 1:
-            logger.info(
-                "Interaction Store %s %s succeeded on attempt %d/%s",
-                method.upper(),
-                route,
-                attempt,
-                attempt_limit,
-            )
-        return response
 
     def save_message(
         self, message: Message, virtual_thread_id: Optional[str] = None

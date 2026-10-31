@@ -198,32 +198,24 @@ class TestInteractionsService(unittest.TestCase):
             TestInteractionsService._mk_json_response(500),
             TestInteractionsService._mk_json_response(200, body),
         ]
-        with self.assertLogs(
-            "nora_lib.impl.interactions.interactions_service", level="INFO"
-        ) as logs:
-            self.assertEqual(body, iservice.fetch_messages_and_events_for_thread("t1"))
+        self.assertEqual(body, iservice.fetch_messages_and_events_for_thread("t1"))
         self.assertEqual(
             req_mock.mock_calls,
             [TestInteractionsService._mk_thread_fetch_call("t1")] * 3,
         )
-        self.assertIn("succeeded on attempt 3/3", logs.output[-1])
         req_mock.reset_mock()
 
-        # Gives up after 3 tries, logging an error
+        # Gives up after 3 tries
         req_mock.side_effect = [
             TestInteractionsService._mk_json_response(502),
             TestInteractionsService._mk_json_response(502),
             TestInteractionsService._mk_json_response(503),
             TestInteractionsService._mk_json_response(200, body),
         ]
-        with self.assertLogs(
-            "nora_lib.impl.interactions.interactions_service", level="ERROR"
-        ) as logs:
-            with self.assertRaises(HTTPError) as exc:
-                iservice.fetch_messages_and_events_for_thread("t1")
+        with self.assertRaises(HTTPError) as exc:
+            iservice.fetch_messages_and_events_for_thread("t1")
         self.assertIn("503", str(exc.exception))
         self.assertEqual(len(req_mock.mock_calls), 3)
-        self.assertIn("after 3 attempts", logs.output[-1])
         req_mock.reset_mock()
 
         # 4xx is not retried
@@ -295,18 +287,13 @@ class TestInteractionsService(unittest.TestCase):
                 req_mock.side_effect = [
                     self._mk_json_response(502) for _ in range(4)
                 ] + [self._mk_json_response(200, body)]
-                with self.assertLogs(
-                    "nora_lib.impl.interactions.interactions_service", level="INFO"
-                ) as logs:
-                    self.assertEqual(
-                        body, iservice.fetch_messages_and_events_for_thread("t1")
-                    )
+                self.assertEqual(
+                    body, iservice.fetch_messages_and_events_for_thread("t1")
+                )
                 self.assertEqual(req_mock.call_count, 5)
                 self.assertEqual(sleep_mock.call_args_list, [call(2)] * 4)
                 self.assertEqual(config.tries, configured_tries)
                 self.assertIs(iservice.retry_config, config)
-                self.assertIn("attempt 1/unlimited", logs.output[0])
-                self.assertIn("succeeded on attempt 5/unlimited", logs.output[-1])
                 req_mock.reset_mock()
                 sleep_mock.reset_mock()
 
@@ -323,70 +310,6 @@ class TestInteractionsService(unittest.TestCase):
                 req_mock.assert_called_once()
                 sleep_mock.assert_not_called()
                 req_mock.reset_mock()
-
-    @patch("retry.api.time.sleep")
-    @patch("requests.request")
-    def test_retry_logs_redact_url_and_request_data(self, req_mock, _sleep):
-        iservice = InteractionsService(
-            "https://private-host.invalid",
-            retry_config=RetryConfig(tries=3, delay=0, jitter=0),
-        )
-        routes = (
-            ("/interaction/v1/thread/private-id", "/interaction/v1/thread"),
-            ("/interaction/v1/event/private-id", "/interaction/v1/event"),
-            ("/interaction/v1/actor/private-id", "/interaction/v1/actor"),
-            (
-                "/interaction/v1/channel/by-context/private-id",
-                "/interaction/v1/channel/by-context",
-            ),
-            ("/interaction/v1/search/thread", "/interaction/v1/search/thread"),
-            (
-                "/corpus/v1/vespa/publicapi/sentence/batch/idlookup",
-                "/corpus/v1/vespa/publicapi/sentence/batch/idlookup",
-            ),
-            ("/unrecognized/private-id", "<unknown>"),
-        )
-        for path, route in routes:
-            for exhausted in (False, True):
-                with self.subTest(path=path, exhausted=exhausted):
-                    url = (
-                        "https://private-user:private-password@private-host.invalid"
-                        f"/private-prefix{path}?private-query=private-value"
-                        "#private-fragment"
-                    )
-                    req_mock.side_effect = [
-                        self._mk_json_response(502),
-                        self._mk_json_response(503),
-                        self._mk_json_response(504 if exhausted else 200),
-                    ]
-                    with self.assertLogs(
-                        "nora_lib.impl.interactions.interactions_service", level="INFO"
-                    ) as logs:
-                        response = iservice._call("get", url, {"id": "private-payload"})
-                    self.assertEqual(response.status_code, 504 if exhausted else 200)
-                    self.assertEqual(
-                        [record.levelname for record in logs.records],
-                        ["WARNING", "WARNING", "ERROR" if exhausted else "INFO"],
-                    )
-                    for message in logs.output:
-                        self.assertIn(f"GET {route}", message)
-                        self.assertNotIn("private-", message)
-                        self.assertNotIn("<Response", message)
-                    self.assertIn("attempt 1/3", logs.output[0])
-                    self.assertIn("status code 502", logs.output[0])
-                    self.assertIn("attempt 2/3", logs.output[1])
-                    self.assertIn("status code 503", logs.output[1])
-                    self.assertIn(
-                        "after 3 attempts" if exhausted else "succeeded on attempt 3/3",
-                        logs.output[2],
-                    )
-                    req_mock.assert_called_with(
-                        method="get",
-                        url=url,
-                        json={"id": "private-payload"},
-                        auth=None,
-                        timeout=30,
-                    )
 
     @staticmethod
     def _mk_json_response(status_code, body_dict=None):
