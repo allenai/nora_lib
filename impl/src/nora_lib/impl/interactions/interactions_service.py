@@ -1,9 +1,11 @@
 import json
 import logging
 import os
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple, Union
+from urllib.parse import urlsplit
 from uuid import UUID
 
 import boto3
@@ -56,6 +58,19 @@ THREAD_FETCH_RETRY_CONFIG = RetryConfig(tries=3)
 logger = logging.getLogger(__name__)
 
 
+def _log_route(url: str) -> str:
+    # Only emit known static route names, never the host, IDs, query, or fragment.
+    route = re.search(
+        r"/interaction/v1/(?:"
+        r"search/(?:message|event|channel|thread)|"
+        r"channel/by-context|message|event|channel|thread|actor|annotation"
+        r")(?=/|$)|"
+        r"/corpus/v1/vespa/publicapi/sentence/batch/idlookup(?=/|$)",
+        urlsplit(url).path,
+    )
+    return route.group(0) if route else "<unknown>"
+
+
 class InteractionsService:
     """
     Service which saves interactions to the Interactions API
@@ -84,6 +99,7 @@ class InteractionsService:
         retry_config: Optional[RetryConfig] = None,
     ) -> Response:
         config = retry_config or self.retry_config
+        route = _log_route(url)
         attempt = 0
 
         @retry(
@@ -107,7 +123,7 @@ class InteractionsService:
             if response.status_code >= 500:
                 # The retry library logs this message at WARNING before each retry.
                 raise RetryableInteractionStoreException(
-                    f"Interaction Store {method.upper()} {url} returned status code "
+                    f"Interaction Store {method.upper()} {route} returned status code "
                     f"{response.status_code} (attempt {attempt}/{config.tries})",
                     response,
                 )
@@ -122,7 +138,7 @@ class InteractionsService:
                     "Interaction Store %s %s still failing with status code %s "
                     "after %d attempts; giving up",
                     method.upper(),
-                    url,
+                    route,
                     exc.response.status_code,
                     attempt,
                 )
@@ -133,7 +149,7 @@ class InteractionsService:
             logger.info(
                 "Interaction Store %s %s succeeded on attempt %d/%d",
                 method.upper(),
-                url,
+                route,
                 attempt,
                 config.tries,
             )
@@ -481,7 +497,7 @@ class InteractionsService:
             retry_config=(
                 self.retry_config
                 if self.retry_config.tries >= THREAD_FETCH_RETRY_CONFIG.tries
-                else THREAD_FETCH_RETRY_CONFIG
+                else replace(self.retry_config, tries=THREAD_FETCH_RETRY_CONFIG.tries)
             ),
         )
         response.raise_for_status()

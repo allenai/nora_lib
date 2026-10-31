@@ -249,6 +249,100 @@ class TestInteractionsService(unittest.TestCase):
             iservice.get_event("1")
         self.assertEqual(len(req_mock.mock_calls), 1)
 
+    @patch("retry.api.time.sleep")
+    @patch("requests.request")
+    def test_thread_fetch_preserves_retry_timing(self, req_mock, sleep_mock):
+        for configured_tries in (1, 2, 5):
+            with self.subTest(tries=configured_tries):
+                config = RetryConfig(
+                    tries=configured_tries,
+                    delay=2,
+                    max_delay=7,
+                    backoff=3,
+                    jitter=(2, 2),
+                )
+                iservice = InteractionsService("somewhere", retry_config=config)
+                expected_tries = max(3, configured_tries)
+                body = {"thread": {"id": "t1"}}
+                req_mock.side_effect = [
+                    self._mk_json_response(502) for _ in range(expected_tries - 1)
+                ] + [self._mk_json_response(200, body)]
+
+                self.assertEqual(
+                    body, iservice.fetch_messages_and_events_for_thread("t1")
+                )
+                self.assertEqual(req_mock.call_count, expected_tries)
+                # Initial delay, followed by backoff + jitter capped at max_delay.
+                self.assertEqual(
+                    sleep_mock.call_args_list,
+                    [call(2)] + [call(7)] * (expected_tries - 2),
+                )
+                self.assertEqual(config.tries, configured_tries)
+                self.assertIs(iservice.retry_config, config)
+                req_mock.reset_mock()
+                sleep_mock.reset_mock()
+
+    @patch("retry.api.time.sleep")
+    @patch("requests.request")
+    def test_retry_logs_redact_url_and_request_data(self, req_mock, _sleep):
+        iservice = InteractionsService(
+            "https://private-host.invalid",
+            retry_config=RetryConfig(tries=3, delay=0, jitter=0),
+        )
+        routes = (
+            ("/interaction/v1/thread/private-id", "/interaction/v1/thread"),
+            ("/interaction/v1/event/private-id", "/interaction/v1/event"),
+            ("/interaction/v1/actor/private-id", "/interaction/v1/actor"),
+            (
+                "/interaction/v1/channel/by-context/private-id",
+                "/interaction/v1/channel/by-context",
+            ),
+            ("/interaction/v1/search/thread", "/interaction/v1/search/thread"),
+            (
+                "/corpus/v1/vespa/publicapi/sentence/batch/idlookup",
+                "/corpus/v1/vespa/publicapi/sentence/batch/idlookup",
+            ),
+            ("/unrecognized/private-id", "<unknown>"),
+        )
+        for path, route in routes:
+            for exhausted in (False, True):
+                with self.subTest(path=path, exhausted=exhausted):
+                    url = (
+                        "https://private-user:private-password@private-host.invalid"
+                        f"/private-prefix{path}?private-query=private-value"
+                        "#private-fragment"
+                    )
+                    req_mock.side_effect = [
+                        self._mk_json_response(502),
+                        self._mk_json_response(503),
+                        self._mk_json_response(504 if exhausted else 200),
+                    ]
+                    with self.assertLogs(level="INFO") as logs:
+                        response = iservice._call("get", url, {"id": "private-payload"})
+                    self.assertEqual(response.status_code, 504 if exhausted else 200)
+                    self.assertEqual(
+                        [record.levelname for record in logs.records],
+                        ["WARNING", "WARNING", "ERROR" if exhausted else "INFO"],
+                    )
+                    for message in logs.output:
+                        self.assertIn(f"GET {route}", message)
+                        self.assertNotIn("private-", message)
+                    self.assertIn("attempt 1/3", logs.output[0])
+                    self.assertIn("status code 502", logs.output[0])
+                    self.assertIn("attempt 2/3", logs.output[1])
+                    self.assertIn("status code 503", logs.output[1])
+                    self.assertIn(
+                        "after 3 attempts" if exhausted else "succeeded on attempt 3/3",
+                        logs.output[2],
+                    )
+                    req_mock.assert_called_with(
+                        method="get",
+                        url=url,
+                        json={"id": "private-payload"},
+                        auth=None,
+                        timeout=30,
+                    )
+
     @staticmethod
     def _mk_json_response(status_code, body_dict=None):
         resp = Response()
