@@ -218,14 +218,39 @@ class TestInteractionsService(unittest.TestCase):
         self.assertEqual(len(req_mock.mock_calls), 3)
         req_mock.reset_mock()
 
-        # 4xx is not retried
-        req_mock.side_effect = [
-            TestInteractionsService._mk_json_response(404),
-            TestInteractionsService._mk_json_response(200, body),
-        ]
-        with self.assertRaises(HTTPError):
-            iservice.fetch_messages_and_events_for_thread("t1")
-        self.assertEqual(len(req_mock.mock_calls), 1)
+        # 4xx, including the boundary immediately below 500, is not retried.
+        for status_code in (404, 499):
+            with self.subTest(status_code=status_code):
+                req_mock.side_effect = [
+                    TestInteractionsService._mk_json_response(status_code),
+                    TestInteractionsService._mk_json_response(200, body),
+                ]
+                with self.assertRaises(HTTPError):
+                    iservice.fetch_messages_and_events_for_thread("t1")
+                self.assertEqual(req_mock.call_count, 1)
+                req_mock.reset_mock()
+
+    @patch("retry.api.time.sleep")
+    @patch("requests.request")
+    def test_thread_fetch_retries_server_error_boundaries(self, req_mock, sleep_mock):
+        iservice = InteractionsService("somewhere")
+        body = {"thread": {"id": "t1"}}
+        for status_code in (500, 504, 599):
+            with self.subTest(status_code=status_code):
+                req_mock.side_effect = [
+                    self._mk_json_response(status_code),
+                    self._mk_json_response(200, body),
+                ]
+                self.assertEqual(
+                    body, iservice.fetch_messages_and_events_for_thread("t1")
+                )
+                self.assertEqual(
+                    req_mock.mock_calls,
+                    [self._mk_thread_fetch_call("t1")] * 2,
+                )
+                sleep_mock.assert_called_once_with(1)
+                req_mock.reset_mock()
+                sleep_mock.reset_mock()
 
     @patch("retry.api.time.sleep")
     @patch("requests.request")
@@ -244,7 +269,7 @@ class TestInteractionsService(unittest.TestCase):
     @patch("retry.api.time.sleep")
     @patch("requests.request")
     def test_thread_fetch_preserves_retry_timing(self, req_mock, sleep_mock):
-        for configured_tries in (1, 2, 5):
+        for configured_tries in (0, 1, 2, 5):
             with self.subTest(tries=configured_tries):
                 config = RetryConfig(
                     tries=configured_tries,

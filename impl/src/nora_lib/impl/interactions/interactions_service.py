@@ -441,8 +441,10 @@ class InteractionsService:
         event_type: Optional[str] = None,
         min_timestamp: Optional[str] = None,
     ) -> dict:
-        """Fetch thread messages and events, using at least three attempts for 5xx.
+        """Fetch thread messages and events, allowing at least three attempts.
 
+        Retryable statuses follow _call (HTTP status >= 500). Finite tries below
+        three, including zero, are raised to three; negative tries remain unlimited.
         Each attempt uses the client's timeout; total duration can exceed it.
         Connection errors and timeouts propagate immediately without retry.
         """
